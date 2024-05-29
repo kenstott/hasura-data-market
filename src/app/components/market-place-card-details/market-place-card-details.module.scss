@@ -1,0 +1,18 @@
+// YourDialogStyles.scss
+
+.dialogPaper {
+  min-height: 80vh;
+  max-height: 80vh;
+  /* Add any other styles you need */
+}
+
+.market-place-card-details {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.market-place-card-content {
+  flex: 1;
+  overflow: auto;
+}
