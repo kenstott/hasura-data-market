@@ -1,8 +1,7 @@
-import styles from './decile-bar-chart.module.scss';
 import React, {useState} from 'react';
 import {BarChart} from '@mui/x-charts';
-import {Decile, Quartile} from "../profiler-dialog/profiler-dialog";
-import {Button, Table, TableBody, TableCell, TableHead, TableRow} from "@mui/material";
+import {Box, Button} from "@mui/material";
+import {DataGrid, GridToolbar} from "@mui/x-data-grid";
 
 export interface DupsBarChartProps {
     data?: Record<string, number>
@@ -16,6 +15,8 @@ export const DupsBarChart: React.FC<DupsBarChartProps> = ({data}) => {
         const top = sorted.slice(0, 20)
         const labels = top.map(([label, _]) => label);
         const values = top.map(([_, value]) => value);
+        let rowCounter = 0
+        const gridData = sorted.map(([Value, Count]) => ({Value, Count}))
 
         return (
             <>
@@ -28,24 +29,15 @@ export const DupsBarChart: React.FC<DupsBarChartProps> = ({data}) => {
                     margin={{top: 10}}
                     yAxis={[{max: Math.max(...values) * 1.1}]}/>
                 <Button onClick={() => setAll(!all)}>View All</Button>
-                {all && (<Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Value</TableCell>
-                            <TableCell>Count</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {sorted.map(([label, value]) => {
-                            return (
-                                <TableRow>
-                                    <TableCell>{label}</TableCell>
-                                    <TableCell>{value}</TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>)}</>
+                {all && (<Box style={{height: '50vh'}}>
+                    <DataGrid
+                        density={'compact'}
+                        slots={{toolbar: GridToolbar}}
+                        rows={gridData}
+                        columns={[{field: 'Value', width: 350}, {field: 'Count'}]}
+                        getRowId={() => rowCounter++}
+                    />
+                </Box>)}</>
         );
     }
     return null

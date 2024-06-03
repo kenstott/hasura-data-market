@@ -5,12 +5,14 @@ export type Product = GraphQLField<never, never>
 export type CurrentProductContextType = {
     currentProduct?: Product
     productRequestQuery?: DocumentNode
+    modifiedProductRequestQuery?: DocumentNode
     selectedFields?: GraphQLField<never, never>[]
     selectedRelationships?: Product[]
     setCurrentProduct: (product?: Product) => void
     setSelectedFields: (fields?: GraphQLField<never, never>[]) => void
     setSelectedRelationships: (relationships?: Product[]) => void
     setProductRequestQuery: (query?: DocumentNode) => void
+    setModifiedProductRequestQuery: (query?: DocumentNode) => void
 };
 
 const CurrentProductContext = createContext<CurrentProductContextType | undefined>(undefined);
@@ -18,13 +20,14 @@ const CurrentProductContext = createContext<CurrentProductContextType | undefine
 export const useCurrentProductContext = () => {
     const context = useContext(CurrentProductContext);
     if (!context) {
-        throw new Error('useGraphQLContext must be used within a GraphQLProvider');
+        throw new Error('useCurrentProductContext must be used within a GraphQLProvider');
     }
     return context;
 };
 export const CurrentProductContextProvider: React.FC<{ children: ReactNode }> = ({children}) => {
     const [currentProduct, setCurrentProduct] = useState<Product | undefined>();
     const [productRequestQuery, setProductRequestQuery] = useState<DocumentNode | undefined>();
+    const [modifiedProductRequestQuery, setModifiedProductRequestQuery] = useState<DocumentNode | undefined>();
     const [selectedFields, setSelectedFields] = useState<GraphQLField<never, never>[] | undefined>();
     const [selectedRelationships, setSelectedRelationships] = useState<Product[] | undefined>();
 
@@ -43,7 +46,9 @@ export const CurrentProductContextProvider: React.FC<{ children: ReactNode }> = 
                 selectedRelationships,
                 setSelectedRelationships,
                 productRequestQuery,
-                setProductRequestQuery
+                setProductRequestQuery,
+                modifiedProductRequestQuery,
+                setModifiedProductRequestQuery
             }}>
             {children}
         </CurrentProductContext.Provider>

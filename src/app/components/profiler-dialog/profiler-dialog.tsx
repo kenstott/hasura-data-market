@@ -15,160 +15,34 @@ import {
     ListItemText,
     Typography
 } from "@mui/material";
-import {Product} from "../current-product-context/current-product-context";
-import {GraphQLField, GraphQLObjectType, GraphQLScalarType, isLeafType} from "graphql";
+import {
+    DirectiveNode,
+    FieldNode,
+    GraphQLObjectType,
+    GraphQLScalarType,
+    isLeafType,
+    OperationDefinitionNode,
+    print
+} from "graphql";
 import {getBaseType} from "../market-place-card/market-place-card";
 import {useLoginContext} from "../login-context/login-context";
 import process from "process";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import {useDebounce} from "../use-debounce";
 import {ProfilePanel} from "../charts/profile-panel";
-
-export interface ProfileNumberStats {
-    mean: number
-    min: number
-    max: number
-    average: number
-    median: number
-    mode: number
-    variance: number
-    sum: number
-}
-
-interface ProfileDateStats {
-    mean: string
-    min: string
-    max: string
-    average: string
-    median: string
-    mode: string
-    variance: string
-}
-
-export interface ProfileStringItem {
-    unique: boolean
-    dups?: {
-        [value: string]: number
-    }
-    stats?: ProfileNumberStats
-}
-
-type Month = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12'
-type DayOfMonth =
-    '1'
-    | '2'
-    | '3'
-    | '4'
-    | '5'
-    | '6'
-    | '7'
-    | '8'
-    | '9'
-    | '10'
-    | '11'
-    | '12'
-    | '13'
-    | '14'
-    | '15'
-    | '16'
-    | '17'
-    | '18'
-    | '19'
-    | '20'
-    | '21'
-    | '22'
-    | '23'
-    | '24'
-    | '25'
-    | '26'
-    | '27'
-    | '28'
-    | '29'
-    | '30'
-    | '31'
-type HourOfDay =
-    '0'
-    | '1'
-    | '2'
-    | '3'
-    | '4'
-    | '5'
-    | '6'
-    | '7'
-    | '8'
-    | '9'
-    | '10'
-    | '11'
-    | '12'
-    | '13'
-    | '14'
-    | '15'
-    | '16'
-    | '17'
-    | '18'
-    | '19'
-    | '20'
-    | '21'
-    | '22'
-    | '23'
-    | '24'
-type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday'
-export type Quartile = '1' | '0.75' | '.0.5' | '0.25'
-export type Decile = '1' | '0.9' | '0.8' | '0.7' | '0.6' | '0.5' | '0.4' | '0.3' | '0.2' | '0.1'
-
-export interface ProfileDateItem {
-    unique: boolean
-    counts?: {
-        year: {
-            [year: string]: number
-        }
-        month: Record<Month, number>
-        dayOfWeek: Record<DayOfWeek, number>
-        dayOfMonth: Record<DayOfMonth, number>
-        hourOfDay: Record<HourOfDay, number>
-    }
-    stats?: ProfileDateStats
-}
-
-interface ProfileBooleanItem {
-    counts?: {
-        'true': number,
-        'false': number
-    }
-}
-
-export interface ProfileNumericItem {
-    unique: boolean
-    stats: ProfileNumberStats
-    deciles: Record<Decile, number>
-    quartiles: Record<Quartile, number>
-}
-
-type ProfilingItem = ProfileStringItem | ProfileDateItem | ProfileNumericItem | ProfileBooleanItem
-
-type ProfilingItems = {
-    [field: string]: ProfilingItem
-}
-
-export interface ProfilerDialogProps {
-    open: boolean;
-    onClose: () => void;
-    product?: Product
-}
-
-export interface ProfilerOptionsVariables {
-    maxSize: number
-}
-
-export interface ProfileOptionsProps {
-    formVariables?: ProfilerOptionsVariables
-    setFormVariables: (props: ProfilerOptionsVariables) => void
-}
-
-export interface ProfilePanelProps {
-    t?: GraphQLScalarType
-    item?: ProfilingItem
-}
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import gql from "graphql-tag";
+import {Writeable} from "../product-table/product-table";
+import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
+import {
+    ProfileOptionsProps,
+    ProfilerDialogProps,
+    ProfilerOptionsVariables,
+    ProfilingItems
+} from "../charts/profile-types";
+import {FieldDescriptor, getFieldDescriptors} from "../helpers/get-field-descriptors";
+import {GraphQLResponse} from "../helpers/graphql-response";
 
 export const ProfilerOptions: React.FC<ProfileOptionsProps> = ({formVariables, setFormVariables}) => {
 
@@ -190,18 +64,20 @@ export const ProfilerOptions: React.FC<ProfileOptionsProps> = ({formVariables, s
     </FormControl></Typography>)
 }
 
-export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, product}) => {
+export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, query, product}) => {
 
-    const [query, setQuery] = useState<string>('')
+    const [profileQuery, setProfileQuery] = useState<string>('')
     const [loading, setLoading] = useState(false)
-    const [sampleVariables, setProfileVariables] = useState<ProfilerOptionsVariables>({
+    const [profileVariables, setProfileVariables] = useState<ProfilerOptionsVariables>({
         maxSize: 10000
     })
     const {adminSecret, role, id} = useLoginContext()
-    const debouncedProfileVariables = useDebounce<ProfilerOptionsVariables>(sampleVariables, 1000)
+    const {schema} = useGraphQLSchemaContext()
+    const debouncedProfileVariables = useDebounce<ProfilerOptionsVariables>(profileVariables, 1000)
     const [rows, setRows] = useState<ProfilingItems>()
-    const [columns, setColumns] = useState<[string, GraphQLField<never, never>][]>()
+    const [columns, setColumns] = useState<Array<FieldDescriptor>>()
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    const [totalRowsAnalyzed, setTotalRowsAnalyzed] = useState(0)
 
     const handleClick = (itemId: string) => {
         if (expandedItems.includes(itemId)) {
@@ -211,6 +87,67 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, pr
         }
     };
 
+    useEffect(() => {
+        if (query) {
+            setColumns(getFieldDescriptors(query, schema))
+            setProfileQuery(print(query))
+        }
+    }, [query, schema])
+
+    useEffect(() => {
+        const {maxSize} = debouncedProfileVariables
+        setProfileQuery((prev) => {
+            if (prev) {
+                const newQuery = gql(prev)
+                const operation = newQuery.definitions[0] as Writeable<OperationDefinitionNode>
+                operation.directives = [
+                    {
+                        kind: "Directive",
+                        name: {
+                            kind: "Name",
+                            value: "profile"
+                        }
+                    },
+                    {
+                        kind: "Directive",
+                        name: {
+                            kind: "Name",
+                            value: "sample"
+                        },
+                        arguments: [
+                            {
+                                kind: "Argument",
+                                name: {
+                                    kind: "Name",
+                                    value: "count"
+                                },
+                                value: {
+                                    kind: "IntValue",
+                                    value: "0"
+                                }
+                            }
+                        ]
+                    }
+                ] as DirectiveNode[];
+
+                (operation.selectionSet.selections[0] as Writeable<FieldNode>).arguments = [
+                    {
+                        "kind": "Argument",
+                        "name": {
+                            "kind": "Name",
+                            "value": "limit"
+                        },
+                        "value": {
+                            "kind": "IntValue",
+                            "value": maxSize.toString()
+                        }
+                    }
+                ]
+                return print(newQuery)
+            }
+            return prev
+        })
+    }, [profileQuery, debouncedProfileVariables.maxSize, debouncedProfileVariables])
 
     useEffect(() => {
         if (product && open) {
@@ -218,17 +155,24 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, pr
             const baseType = getBaseType(product.type) as GraphQLObjectType;
             const fields = Object.entries(baseType.getFields() || {})
                 .filter(([_, field]) => isLeafType(getBaseType(field.type)))
-            setColumns(fields)
+            setColumns(fields.map(fields => [...fields, baseType]))
             const fieldList = fields.map(([name, _]) => name).join(' ')
             const sample = `@sample(count: 0) @profile`
             const query = `query profile${baseType.name} ${sample} { ${baseType.name}(limit: ${maxSize}) { ${fieldList} } }`
-            setQuery(query)
+            setProfileQuery(query)
         }
     }, [open, product, debouncedProfileVariables]);
 
     useEffect(() => {
         if (open) {
             setLoading(true)
+        } else {
+            setLoading(false)
+        }
+    }, [open]);
+
+    useEffect(() => {
+        if (open && profileQuery) {
             const headers = {
                 'x-hasura-admin-secret': adminSecret,
                 'x-hasura-role': role,
@@ -236,11 +180,11 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, pr
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
             }
-            const baseType = getBaseType(product?.type) as GraphQLObjectType | undefined;
-            const operationName = `profile${baseType?.name}`
+            const q = gql(profileQuery)
+            const operationName = (q.definitions[0] as OperationDefinitionNode).name?.value || ''
             const body = JSON.stringify({
                 operationName,
-                query,
+                query: profileQuery,
                 variables: {}
             })
             fetch(process.env.NEXT_PUBLIC_URI || '', {
@@ -248,19 +192,22 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, pr
                 headers,
                 body
             }).then(async (response) => {
-                const rows = await response.json()
-                setRows(rows.extensions['profiling'][baseType?.name || ''])
+                const rows = await response.json() as GraphQLResponse
+                setRows(rows.extensions.profiling[Object.keys(rows.extensions.profiling)[0]])
+                setTotalRowsAnalyzed((rows.extensions.actualDatasetSize[Object.keys(rows.extensions.profiling)[0]]))
                 setLoading(false)
             }).catch(() => {
                 setLoading(false)
             })
         }
-    }, [adminSecret, id, open, product?.type, query, role]);
+    }, [adminSecret, id, open, profileQuery, role]);
 
     if (open) {
         return (<Dialog fullWidth={true} style={{padding: 0}} maxWidth={'lg'} open={open} onClose={onClose}>
-            <DialogTitle>
-                <ProfilerOptions formVariables={sampleVariables} setFormVariables={setProfileVariables}/>
+            <DialogTitle style={{display: 'flex', justifyContent: 'space-between'}}>
+                <ProfilerOptions formVariables={profileVariables} setFormVariables={setProfileVariables}/>
+                <Typography variant="button" style={{marginRight: '30px'}}>Total Rows
+                    Analyzed: {totalRowsAnalyzed}</Typography>
             </DialogTitle>
             <DialogCloseButton onClose={onClose}/>
             <DialogContent>
@@ -269,7 +216,8 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, pr
                         {columns?.map(([fieldName, field]) => {
                                 return (<div key={fieldName}>
                                         <ListItemButton onClick={() => handleClick(fieldName)}>
-                                            <ListItemText primary={fieldName}/>
+                                            {expandedItems.includes(fieldName) ? <ExpandMoreIcon/> :
+                                                <ChevronRightIcon/>}<ListItemText primary={fieldName}/>
                                         </ListItemButton>
                                         <Collapse in={expandedItems.includes(fieldName)} timeout="auto" unmountOnExit>
                                             <ProfilePanel t={getBaseType(field.type) as GraphQLScalarType}

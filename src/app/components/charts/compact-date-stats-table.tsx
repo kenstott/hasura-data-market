@@ -1,17 +1,7 @@
 import React from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {ProfileNumberStats} from "../profiler-dialog/profiler-dialog";
 
-function epochToComponents(diffSeconds: number) {
-
-    const minutes = Math.floor(Math.abs(diffSeconds) / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const months = Math.floor(days / 30.44);
-    const years = Math.floor(months / 12);
-
-    return `${years} years, ${months} months, ${days} days, ${hours} hours, ${minutes} minutes`;
-}
+import {ProfileDateStats} from "./profile-types";
 
 export const CompactDateStatsTable: React.FC<{ stats?: ProfileDateStats }> = ({stats}) => {
     if (stats) {
@@ -48,10 +38,6 @@ export const CompactDateStatsTable: React.FC<{ stats?: ProfileDateStats }> = ({s
                         <TableRow>
                             <TableCell>Mode</TableCell>
                             <TableCell align="right">{new Date(stats.mode).toUTCString()}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Variance</TableCell>
-                            <TableCell align="right">{epochToComponents(stats.variance)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>

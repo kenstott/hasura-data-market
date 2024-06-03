@@ -65,7 +65,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({open, onClose}) => {
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleSave} color="primary">
-                    Save
+                    Login
                 </Button>
             </DialogActions>
         </Dialog>

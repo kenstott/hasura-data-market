@@ -7,7 +7,7 @@ import {GraphiQL} from 'graphiql'
 import 'graphiql/graphiql.css';
 import dynamic from 'next/dynamic';
 import '@graphiql/plugin-explorer/dist/style.css';
-import {DocumentNode, print} from "graphql";
+import {print} from "graphql";
 import gql from 'graphql-tag'
 import {ProfileButton} from "../profile-button/profile-button";
 import {ExportResponseButton, FileFormat} from "../export-response/export-response-button";
@@ -27,18 +27,21 @@ const explorer = explorerPlugin({showAttribution: true, hideActions: true});
 // Your custom toolbar component
 const _window = typeof window !== 'undefined' ? window : undefined;
 
-const RequestQuery: React.FC = () => {
-    const [query, setQuery] = useState<string>()
-    const [queryAST, setQueryAST] = useState<DocumentNode>()
+export const RequestQuery: React.FC = () => {
+    const {
+        productRequestQuery,
+        setModifiedProductRequestQuery,
+        modifiedProductRequestQuery
+    } = useCurrentProductContext()
+
+    const {schema} = useGraphQLSchemaContext();
+    const {adminSecret, role, id} = useLoginContext()
+    const [query, setQuery] = useState<string | undefined>(productRequestQuery ? print(productRequestQuery) : undefined)
     const [variables, setVariables] = useState<string>()
     const [headers, setHeaders] = useState<string | undefined>(_window?.localStorage.getItem('graphiql:headers') || undefined)
     const [operationName, setOperationName] = useState<string>()
     const [response, setResponse] = useState("")
-    const {productRequestQuery} = useCurrentProductContext()
-
     const fetcher = useRef<Fetcher>(createFetcher(setResponse));
-    const {schema} = useGraphQLSchemaContext();
-    const {adminSecret, role, id} = useLoginContext()
 
     useEffect(() => {
         const newHeaders = {
@@ -51,18 +54,18 @@ const RequestQuery: React.FC = () => {
     }, [adminSecret, role, id, headers]);
 
     useEffect(() => {
-        if (productRequestQuery) {
-            setQuery(print(productRequestQuery))
-        }
-    }, [productRequestQuery])
-
-    useEffect(() => {
         try {
-            setQueryAST(query ? gql(query) : undefined)
+            if (query) {
+                const ast = gql(query)
+                setModifiedProductRequestQuery(ast)
+            } else {
+                setModifiedProductRequestQuery(undefined)
+            }
+
         } catch {
-            setQueryAST(undefined)
+            setModifiedProductRequestQuery(undefined)
         }
-    }, [query])
+    }, [query, setModifiedProductRequestQuery])
 
     useEffect(() => {
         if (headers) {
@@ -92,8 +95,8 @@ const RequestQuery: React.FC = () => {
             onEditOperationName={setOperationName}
             toolbar={{
                 additionalContent: [
-                    <ProfileButton key="profile-button" queryAST={queryAST} setQuery={setQuery}/>,
-                    <SampleButton key="sample-button" queryAST={queryAST} setQuery={setQuery}/>,
+                    <ProfileButton key="profile-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>,
+                    <SampleButton key="sample-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>,
                 ],
             }}
         >

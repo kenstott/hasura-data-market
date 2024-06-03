@@ -42,7 +42,7 @@ interface FieldTableProps {
     root?: boolean
 }
 
-type Writeable<T> = { -readonly [P in keyof T]: T[P] };
+export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 type CheckedFields = Record<number, boolean>
 

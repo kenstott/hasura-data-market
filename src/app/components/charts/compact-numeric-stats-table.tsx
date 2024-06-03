@@ -1,6 +1,6 @@
 import React from "react";
 import {Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {ProfileNumberStats} from "../profiler-dialog/profiler-dialog";
+import {ProfileNumberStats} from "./profile-types";
 
 export const CompactNumericStatsTable: React.FC<{ stats?: ProfileNumberStats }> = ({stats}) => {
     if (stats) {

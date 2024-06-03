@@ -3,23 +3,37 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import {Box, DialogContent, FormControl, FormControlLabel, Input, Radio, RadioGroup, Typography} from "@mui/material";
 import {Product} from "../current-product-context/current-product-context";
-import {GraphQLObjectType, isLeafType} from "graphql";
+import {
+    ArgumentNode,
+    DocumentNode,
+    FieldNode,
+    GraphQLObjectType,
+    isLeafType,
+    OperationDefinitionNode,
+    print
+} from "graphql";
 import {getBaseType} from "../market-place-card/market-place-card";
 import {useLoginContext} from "../login-context/login-context";
 import process from "process";
-import {DataGrid, GridColDef} from '@mui/x-data-grid';
+import {DataGrid, GridColDef, GridToolbar, useGridApiRef} from '@mui/x-data-grid';
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import {useDebounce} from "../use-debounce";
+import gql from "graphql-tag";
+import {Writeable} from "../product-table/product-table";
+import {flatten} from 'flat'
+import _ from 'lodash'
+import {getQueryDottedFields} from "../helpers/get-query-dotted-fields";
 
 
 export interface SamplerDialogProps {
     open: boolean;
     onClose: () => void;
-    product?: Product
+    product?: Product,
+    query?: DocumentNode
 }
 
 export interface SamplerOptionsVariables {
-    sampleType: 'random' | 'first' | 'last',
+    sampleType: 'random' | 'first' | 'fromEnd',
     sampleSize: number,
     maxSize: number
 }
@@ -64,7 +78,7 @@ export const SamplerOptions: React.FC<SampleOptionsProps> = ({formVariables, set
         >
             <FormControlLabel id={'sampleType'} value="random" control={<Radio/>} label="Random"/>
             <FormControlLabel id={'sampleType'} value="first" control={<Radio/>} label="First"/>
-            <FormControlLabel id={'sampleType'} value="last" control={<Radio/>} label="Last"/>
+            <FormControlLabel id={'sampleType'} value="fromEnd" control={<Radio/>} label="Last"/>
         </RadioGroup>
         Sample&nbsp;&nbsp;&nbsp;
         <FormControl>
@@ -80,9 +94,15 @@ export const SamplerOptions: React.FC<SampleOptionsProps> = ({formVariables, set
     </FormControl></Typography>)
 }
 
-export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, product}) => {
+const autosizeOptions = {
+    includeHeaders: true,
+    includeOutliers: true,
+    expand: true
+};
+export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, query, product}) => {
 
-    const [query, setQuery] = useState<string>('')
+    const apiRef = useGridApiRef();
+    const [sampleQuery, setSampleQuery] = useState<string>('')
     const [loading, setLoading] = useState(false)
     const [sampleVariables, setSampleVariables] = useState<SamplerOptionsVariables>({
         sampleType: 'random',
@@ -95,24 +115,85 @@ export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, prod
     const [columns, setColumns] = useState<GridColDef[]>()
 
     useEffect(() => {
+        if (query) {
+            const fieldNode = (query.definitions?.[0] as OperationDefinitionNode).selectionSet.selections[0] as FieldNode
+            setColumns(getQueryDottedFields(fieldNode.selectionSet).map(field => ({field})))
+            setSampleQuery(print(query))
+        }
+    }, [query])
+
+    useEffect(() => {
+        const {sampleType, sampleSize, maxSize} = debouncedSampleVariables
+        setSampleQuery((prev) => {
+            if (prev) {
+                const newQuery = gql(prev)
+                const operation = newQuery.definitions[0] as Writeable<OperationDefinitionNode>
+                operation.directives = [
+                    {
+                        kind: "Directive",
+                        name: {
+                            kind: "Name",
+                            value: "sample"
+                        },
+                        arguments: [
+                            {
+                                kind: "Argument",
+                                name: {
+                                    kind: "Name",
+                                    value: "count"
+                                },
+                                value: {
+                                    kind: "IntValue",
+                                    value: sampleSize.toString()
+                                }
+                            }
+                        ]
+                    }
+                ]
+                if (sampleType !== 'first' && operation.directives[0].arguments) {
+                    (operation.directives[0].arguments as Writeable<ArgumentNode[]>).push({
+                        kind: "Argument",
+                        name: {
+                            kind: "Name",
+                            value: sampleType
+                        },
+                        value: {
+                            kind: "BooleanValue",
+                            value: true
+                        }
+                    })
+                }
+                (operation.selectionSet.selections[0] as Writeable<FieldNode>).arguments = [
+                    {
+                        "kind": "Argument",
+                        "name": {
+                            "kind": "Name",
+                            "value": "limit"
+                        },
+                        "value": {
+                            "kind": "IntValue",
+                            "value": maxSize.toString()
+                        }
+                    }
+                ]
+                return print(newQuery)
+            }
+            return prev
+        })
+    }, [sampleQuery, debouncedSampleVariables])
+
+    useEffect(() => {
         if (product) {
-            const {sampleType, sampleSize, maxSize} = debouncedSampleVariables
-            const baseType = getBaseType(product.type) as GraphQLObjectType;
+            const baseType = getBaseType(product?.type) as GraphQLObjectType;
             const fields = Object.entries(baseType.getFields() || {})
                 .filter(([_, field]) => isLeafType(getBaseType(field.type)))
             const cols = fields.map(([name, _]) => ({field: name, headerName: name}))
             setColumns(cols)
-            const lastOrRandom = {
-                'random': 'random: true',
-                'last': 'last: true',
-                'first': ''
-            }
             const fieldList = fields.map(([name, _]) => name).join(' ')
-            const sample = `@sample(count: ${sampleSize} ${lastOrRandom[sampleType]})`
-            const query = `query find${baseType.name} ${sample} { ${baseType.name}(limit: ${maxSize}) { ${fieldList} } }`
-            setQuery(query)
+            const query = `query find${baseType.name} { ${baseType.name} { ${fieldList} } }`
+            setSampleQuery(query)
         }
-    }, [product, debouncedSampleVariables]);
+    }, [sampleQuery, product, debouncedSampleVariables]);
 
     useEffect(() => {
         if (open) {
@@ -124,11 +205,11 @@ export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, prod
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
             }
-            const baseType = getBaseType(product?.type) as GraphQLObjectType | undefined;
-            const operationName = `find${baseType?.name}`
+            const q = gql(sampleQuery)
+            const operationName = (q.definitions[0] as OperationDefinitionNode).name?.value || ''
             const body = JSON.stringify({
                 operationName,
-                query,
+                query: sampleQuery,
                 variables: {}
             })
             fetch(process.env.NEXT_PUBLIC_URI || '', {
@@ -137,36 +218,52 @@ export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, prod
                 body
             }).then(async (response) => {
                 const rows = await response.json()
-                setRows(rows.data[baseType?.name || ''])
+                const flatRows = rows.data[Object.keys(rows.data)[0]].map(flatten)
+                const cols = [...new Set(_.flatten(flatRows.map(Object.keys)))].map((field) => ({field}))
+                setColumns(cols as GridColDef[])
+                setRows(flatRows)
                 setLoading(false)
-            }).catch(() => setLoading(false))
+                setTimeout(() => {
+                    apiRef.current.autosizeColumns(autosizeOptions).then().catch()
+                }, 1)
+
+            }).catch((error) => {
+                setLoading(false)
+            })
         }
-    }, [adminSecret, id, open, product?.type, query, role]);
+    }, [adminSecret, id, open, product?.type, sampleQuery, role, apiRef]);
     let rowCounter = 0;
 
-    return (<Dialog fullWidth={true} style={{padding: 0}} maxWidth={'lg'} open={open} onClose={onClose}>
-        <DialogTitle>
-            <SamplerOptions formVariables={sampleVariables} setFormVariables={setSampleVariables}/>
-        </DialogTitle>
-        <DialogCloseButton onClose={onClose}/>
-        <DialogContent><Box style={{height: '80vh'}}>
-            <DataGrid
-                loading={loading}
-                rows={rows || [] as Record<string, unknown>[]}
-                columns={columns || []}
-                initialState={{
-                    pagination: {
-                        paginationModel: {
-                            pageSize: 50,
+    if (open && (product || query)) {
+        return (<Dialog fullWidth={true} style={{padding: 0}} maxWidth={'lg'} open={open} onClose={onClose}>
+            <DialogTitle>
+                <SamplerOptions formVariables={sampleVariables} setFormVariables={setSampleVariables}/>
+            </DialogTitle>
+            <DialogCloseButton onClose={onClose}/>
+            <DialogContent><Box style={{height: '80vh'}}>
+                <DataGrid
+                    apiRef={apiRef}
+                    loading={loading}
+                    slots={{toolbar: GridToolbar}}
+                    autosizeOnMount={true}
+                    rows={rows || [] as Record<string, unknown>[]}
+                    columns={columns || []}
+                    initialState={{
+                        pagination: {
+                            paginationModel: {
+                                pageSize: 50,
+                            },
                         },
-                    },
-                }}
-                pageSizeOptions={[5]}
-                getRowId={() => rowCounter++}
-            />
-        </Box>
-        </DialogContent>
-    </Dialog>)
+                    }}
+                    pageSizeOptions={[5]}
+                    getRowHeight={() => 'auto'}
+                    getRowId={() => rowCounter++}
+                />
+            </Box>
+            </DialogContent>
+        </Dialog>)
+    }
+    return null
 }
 
 export default SamplerDialog;

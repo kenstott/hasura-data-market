@@ -8,3 +8,27 @@
   align-items: center;
   height: 100%;
 }
+
+.search {
+  position: relative;
+  border-radius: 4px;
+  color: white;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: black;
+  }
+
+  input {
+    color: white;
+    padding: 8px 8px 8px calc(1em + 32px);
+    transition: width .8s ease;
+    width: 100%;
+
+    &:focus {
+      width: 200px;
+    }
+  }
+}
+
