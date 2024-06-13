@@ -141,7 +141,7 @@ export type HourOfDay =
     | '23'
     | '24'
 export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday'
-export type Quartile = '1' | '0.75' | '.0.5' | '0.25'
+export type Quartile = '1' | '0.75' | '0.5' | '0.25'
 export type Decile = '1' | '0.9' | '0.8' | '0.7' | '0.6' | '0.5' | '0.4' | '0.3' | '0.2' | '0.1'
 export type DateCounts = 'year' | 'month' | 'dayOfMonth' | 'dayOfWeek' | 'hourOfDay'
 export type YearCount = Record<string, number>

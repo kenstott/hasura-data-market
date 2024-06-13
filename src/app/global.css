@@ -12,3 +12,10 @@ html, body {
     margin: 0;
 }
 
+.graphiql-session-header {
+    display: none
+}
+
+.graphiql-container .graphiql-session-header {
+    display: none !important;
+}

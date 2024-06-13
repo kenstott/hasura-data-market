@@ -123,7 +123,7 @@ const FieldTable: React.FC<FieldTableProps> =
                         },
                         value: {
                             kind: "IntValue",
-                            value: "20000"
+                            value: "10000"
                         }
                     }
                 ]

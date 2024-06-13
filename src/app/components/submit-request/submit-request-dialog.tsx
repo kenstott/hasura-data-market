@@ -15,7 +15,7 @@ import {
     DialogActions,
     Divider,
     FormControl,
-    FormControlLabel,
+    FormControlLabel, FormHelperText,
     Input,
     InputLabel,
     Paper,
@@ -57,7 +57,9 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
     const [selectedFields, setSelectedFields] = useState<FieldDescriptor[]>()
     const [selectedDatasets, setSelectedDatasets] =
         useState<SelectedDataset[]>()
-    const [response, setResponse] = useState(false)
+    const [businessReason, setBusinessReason] = useState('')
+    const [businessReasponHelperText, setBusinessReasonHelperText] = useState('0/500 characters')
+    const [bueinessReasonError, setBusinessReasonError] = useState(true)
 
     useEffect(() => {
         if (modifiedProductRequestQuery) {
@@ -76,6 +78,13 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
             setSelectedDatasets(selectedDatasets)
         }
     }, [modifiedProductRequestQuery, schema]);
+
+    useEffect(() => {
+        if (businessReason.length < 500) {
+            setBusinessReasonError(businessReason.length === 0)
+            setBusinessReasonHelperText(`${businessReason.length}/500 characters`)
+        }
+    }, [businessReason.length]);
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth={"xl"}>
             <DialogCloseButton onClose={onClose}/>
@@ -83,9 +92,18 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
             <DialogContent>
                 <Paper sx={{padding: 1}}>
                     <FormControl fullWidth>
-                        <InputLabel htmlFor={'business-reason'}>Business justification for this data
-                            request</InputLabel>
-                        <Input fullWidth name={'business-reason'} multiline></Input>
+                        <InputLabel htmlFor={'business-reason'}>
+                            *Business justification for this data request
+                        </InputLabel>
+                        <Input required
+                               value={businessReason}
+                               onChange={(event) => setBusinessReason(event.target.value)}
+                               fullWidth name={'business-reason'}
+                               maxRows={5}
+                               multiline/>
+                        <FormHelperText>
+                            {businessReasponHelperText}
+                        </FormHelperText>
                     </FormControl>
                 </Paper>
                 {selectedDatasets?.map(({
@@ -182,14 +200,15 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
                 })}
             </DialogContent>
             <DialogActions>
-                <Button onClick={onCompleted} startIcon={<NavigateNextIcon/>} color={'primary'} variant={'contained'}>Submit
-                    Request</Button>
+                <Button disabled={bueinessReasonError} onClick={onCompleted} startIcon={<NavigateNextIcon/>}
+                        color={'primary'} variant={'contained'}>
+                    Submit Request
+                </Button>
                 <Button
                     variant="outlined"
                     color="secondary"
                     startIcon={<CancelIcon/>}
-                    onClick={onClose}
-                >
+                    onClick={onClose}>
                     Cancel
                 </Button>
             </DialogActions>

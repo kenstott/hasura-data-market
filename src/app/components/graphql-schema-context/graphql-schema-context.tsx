@@ -1,10 +1,20 @@
 import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
-import {buildClientSchema, ExecutionResult, getIntrospectionQuery, GraphQLSchema, IntrospectionQuery} from "graphql";
+import {
+    buildClientSchema,
+    ExecutionResult,
+    getIntrospectionQuery,
+    GraphQLSchema,
+    IntrospectionDirective,
+    IntrospectionQuery
+} from "graphql";
 import {Fetcher} from "@graphiql/toolkit";
 import {createFetcher} from "../../create-fetcher";
+import process from "process";
+import {Writeable} from "../product-table/product-table";
 
 export type GraphQLSchemaContextType = {
-    schema?: GraphQLSchema | null; // Example: You can add other relevant data here
+    schema?: GraphQLSchema | null;
+    hasuraSchema?: GraphQLSchema | null;
 };
 
 const GraphQLSchemaContext = createContext<GraphQLSchemaContextType | undefined>(undefined);
@@ -18,6 +28,7 @@ export const useGraphQLSchemaContext = () => {
 };
 export const GraphQLSchemaProvider: React.FC<{ children: ReactNode }> = ({children}) => {
     const [graphQLSchema, setGraphQLSchema] = useState<GraphQLSchema>()
+    const [hasuraQLSchema, setHasuraGraphQLSchema] = useState<GraphQLSchema>()
     const fetcher = useRef<Fetcher>(createFetcher());
     const initialized = useRef<boolean>(false)
 
@@ -33,6 +44,21 @@ export const GraphQLSchemaProvider: React.FC<{ children: ReactNode }> = ({childr
                     const schema = buildClientSchema(result.data)
                     setGraphQLSchema(schema)
                 }
+                const _result = (await fetcher.current({
+                    operationName: 'find__schema',
+                    query: getIntrospectionQuery().replace('IntrospectionQuery', 'find__schema')
+                }, {
+                    headers: {
+                        'x-hasura-role': process.env.NEXT_PUBLIC_EXPLORER_ROLE,
+                        'x-hasura-admin-secret': process.env.NEXT_PUBLIC_ADMIN_SECRET,
+                        'x-hasura-pass-through': true
+                    }
+                })) as ExecutionResult<IntrospectionQuery>
+                if (_result.data) {
+                    (_result.data.__schema.directives as Writeable<IntrospectionDirective[]>) = (_result.data.__schema.directives || result.data?.__schema.directives) as Writeable<IntrospectionDirective[]>
+                    const schema = buildClientSchema(_result.data)
+                    setHasuraGraphQLSchema(schema)
+                }
             }
             run().then().catch()
         }
@@ -41,7 +67,7 @@ export const GraphQLSchemaProvider: React.FC<{ children: ReactNode }> = ({childr
 
     return (
 
-        <GraphQLSchemaContext.Provider value={{schema: graphQLSchema}}>
+        <GraphQLSchemaContext.Provider value={{schema: graphQLSchema, hasuraSchema: hasuraQLSchema}}>
             {children}
         </GraphQLSchemaContext.Provider>
     );

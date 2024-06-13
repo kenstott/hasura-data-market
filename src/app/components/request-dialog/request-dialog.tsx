@@ -21,7 +21,7 @@ export const RequestDialog: React.FC<RequestDialogProps> = ({open, onClose, onCo
     return (
         <>
             <Dialog fullWidth={true} className={styles['request-dialog']}
-                    maxWidth={'lg'} open={open} onClose={onClose}>
+                    maxWidth={'xl'} open={open} onClose={onClose}>
                 <DialogTitle>Review Your Data Request</DialogTitle>
                 <DialogCloseButton onClose={onClose}/>
                 <DialogContent className={styles['request-dialog-content']}>

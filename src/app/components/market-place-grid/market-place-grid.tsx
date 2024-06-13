@@ -16,17 +16,18 @@ export interface MarketPlaceGridProps {
 export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
     const [products, setProducts] = useState<Product[]>()
     const [searchable, setSearchable] = useState<string[]>([])
-    const {schema} = useGraphQLSchemaContext()
+    const {hasuraSchema} = useGraphQLSchemaContext()
     const {search} = useSearchContext()
 
     useEffect(() => {
-        if (schema) {
+        if (hasuraSchema) {
             const products =
-                Object.values(schema?.getQueryType()?.getFields() || {})
-                    .filter((i) => !i.name.endsWith('_aggregate') && !i.name.endsWith('_pk'))
+                Object.values(hasuraSchema?.getQueryType()?.getFields() || {})
+                    .filter((i) => !i.name.endsWith('_aggregate') && !i.name.endsWith('_pk') && i.name !== '_service')
             setProducts(products)
         }
-    }, [schema])
+    }, [hasuraSchema])
+
     useEffect(() => {
         if (products) {
             const newSearchable = []
@@ -63,7 +64,7 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
         setSearchable([])
     }, [products]);
 
-    if (schema && products) {
+    if (hasuraSchema && products) {
         return (
             <Box>
                 <Grid className={styles['grid-container']} container spacing={2}>

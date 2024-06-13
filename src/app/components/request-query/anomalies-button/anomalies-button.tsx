@@ -1,45 +1,43 @@
 import React from "react";
 import {ToolbarButton} from "@graphiql/react";
-import QueryStatsSharpIcon from "@mui/icons-material/QueryStatsSharp";
 import {DirectiveNode, DocumentNode, Kind, OperationDefinitionNode, print} from "graphql";
-import styles from '../components.module.scss'
+import BugReportIcon from '@mui/icons-material/BugReport';
+import styles from '../../components.module.scss'
 
 /* eslint-disable-next-line */
-interface ProfileButtonProps {
+interface SampleButtonProps {
     queryAST?: DocumentNode
     setQuery: (value: (((prevState: (string | undefined)) => (string | undefined)) | string | undefined)) => void
 }
 
-function profileClicked(queryAST: DocumentNode | undefined, setQuery: (value: (((prevState: (string | undefined)) => (string | undefined)) | string | undefined)) => void) {
+function anomalyClicked(queryAST: DocumentNode | undefined, setQuery: (value: (((prevState: (string | undefined)) => (string | undefined)) | string | undefined)) => void) {
     return () => {
         if (queryAST) {
             const queryList = (queryAST.definitions.filter(a => a.kind === 'OperationDefinition' && a.operation === 'query')) as OperationDefinitionNode[]
             if (queryList.length === 0) {
-                alert('No query to profile!')
+                alert('No query to anomaly!')
             } else if (queryList.length > 1) {
                 alert('Only supports a single query operation.')
             } else {
                 const ast = queryList[0]
                 if (ast.directives) {
-                    const profileIndex = ast.directives.findIndex(a => a.name.value === 'profile')
-                    if (profileIndex !== -1) {
+                    const anomalyIndex = ast.directives.findIndex(a => a.name.value === 'anomalies')
+                    if (anomalyIndex !== -1) {
                         const revisedDirectives = [...ast.directives]
-                        revisedDirectives.splice(profileIndex, 1)
+                        revisedDirectives.splice(anomalyIndex, 1)
                         const revisedAST = {...ast, directives: revisedDirectives}
                         const revisedQuery = print(revisedAST)
                         setQuery(revisedQuery)
                         return
                     }
-                    const profileDirective: DirectiveNode = {
+                    const anomalyDirective: DirectiveNode = {
                         kind: Kind.DIRECTIVE,
                         name: {
                             kind: Kind.NAME,
-                            value: 'profile',
+                            value: 'anomalies',
                         },
-                        arguments: [],
                     }
-                    const revisedDirectives = [...ast.directives]
-                    revisedDirectives.push(profileDirective)
+                    const revisedDirectives = [...new Set([...ast.directives, anomalyDirective])]
                     const revisedAST = {...ast, directives: revisedDirectives}
                     const revisedQuery = print(revisedAST)
                     setQuery(revisedQuery)
@@ -49,14 +47,14 @@ function profileClicked(queryAST: DocumentNode | undefined, setQuery: (value: ((
     };
 }
 
-export const ProfileButton: React.FC<ProfileButtonProps> = ({queryAST, setQuery}) => {
+export const AnomaliesButton: React.FC<SampleButtonProps> = ({queryAST, setQuery}) => {
     return (
-        <ToolbarButton label={'Profile Query'} onClick={profileClicked(queryAST, setQuery)}
+        <ToolbarButton label={'Anomalies Query'} onClick={anomalyClicked(queryAST, setQuery)}
                        className={styles['toolbar-button']}>
-            <QueryStatsSharpIcon className={styles['toolbar-button-icon']}/>
+            <BugReportIcon className={styles['toolbar-button-icon']}/>
         </ToolbarButton>
     );
 }
 
-export default ProfileButton;
+export default AnomaliesButton;
 

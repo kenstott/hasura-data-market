@@ -9,14 +9,15 @@ import dynamic from 'next/dynamic';
 import '@graphiql/plugin-explorer/dist/style.css';
 import {print} from "graphql";
 import gql from 'graphql-tag'
-import {ProfileButton} from "../profile-button/profile-button";
-import {ExportResponseButton, FileFormat} from "../export-response/export-response-button";
+import {ProfileButton} from "./profile-button/profile-button";
+import {ExportResponseButton, FileFormat} from "./export-response/export-response-button";
 import {createFetcher} from "../../create-fetcher";
 import {Fetcher} from "@graphiql/toolkit";
 import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
 import {useCurrentProductContext} from "../current-product-context/current-product-context";
 import {useLoginContext} from "../login-context/login-context";
-import SampleButton from "../sample-button/sample-button";
+import {SampleButton} from "./sample-button/sample-button";
+import AnomaliesButton from "./anomalies-button/anomalies-button";
 
 // Required to not pre-compile on server-side
 const GraphiQLX = dynamic(() => import('graphiql'), {
@@ -97,6 +98,7 @@ export const RequestQuery: React.FC = () => {
                 additionalContent: [
                     <ProfileButton key="profile-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>,
                     <SampleButton key="sample-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>,
+                    <AnomaliesButton key="anomalies-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>
                 ],
             }}
         >

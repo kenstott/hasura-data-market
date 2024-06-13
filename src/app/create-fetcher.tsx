@@ -4,8 +4,9 @@ import process from "process";
 export function createFetcher(setResponse?: (response: string) => void) {
     const fetcher: Fetcher = async (graphQLParams, opts) => {
         const body = JSON.stringify(graphQLParams)
+        const uri = process.env.NEXT_PUBLIC_URI || ''
         const data = await fetch(
-            process.env.NEXT_PUBLIC_URI || '',
+            uri,
             {
                 method: 'POST',
                 headers: {
