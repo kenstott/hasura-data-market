@@ -173,6 +173,7 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
 
     useEffect(() => {
         if (open && profileQuery) {
+            setLoading(true)
             const headers = {
                 'x-hasura-admin-secret': adminSecret,
                 'x-hasura-role': role,
@@ -203,7 +204,21 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
     }, [adminSecret, id, open, profileQuery, role]);
 
     if (open) {
-        return (<Dialog fullWidth={true} style={{padding: 0}} maxWidth={'lg'} open={open} onClose={onClose}>
+        return (<Dialog fullWidth={true} style={{padding: 0}} maxWidth={'lg'} open={open}
+                        onClose={onClose}>
+            <Backdrop open={loading}
+                      sx={{
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          position: 'absolute',
+                          color: 'transparent',
+                          backgroundColor: 'rgba(241, 241, 241, 0.5)',
+                          zIndex: (theme) => theme.zIndex.drawer + 1
+                      }}>
+                <CircularProgress color="secondary"/>
+            </Backdrop>
             <DialogTitle style={{display: 'flex', justifyContent: 'space-between'}}>
                 <ProfilerOptions formVariables={profileVariables} setFormVariables={setProfileVariables}/>
                 <Typography variant="button" style={{marginRight: '30px'}}>Total Rows
@@ -231,9 +246,6 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
                     </List>
                 </Box>
             </DialogContent>
-            <Backdrop open={loading} sx={{color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1}}>
-                <CircularProgress color="secondary"/>
-            </Backdrop>
         </Dialog>)
     }
     return null

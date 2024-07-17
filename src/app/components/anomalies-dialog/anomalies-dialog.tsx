@@ -26,6 +26,7 @@ import {FieldDescriptor, getFieldDescriptors} from "../helpers/get-field-descrip
 import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import {GridLogicOperator} from "@mui/x-data-grid/models/gridFilterItem";
+import _ from 'lodash';
 
 
 export interface AnomaliesDialogProps {
@@ -78,6 +79,54 @@ const GridTypeMap: Record<string, GridColType> = {
     'timestamp': 'dateTime',
     'timestampz': 'dateTime'
 }
+
+const convertToAnomaliesQuery = (prev: string, maxSize: number): string => {
+    const newQuery = gql(prev)
+    const operation = newQuery.definitions[0] as Writeable<OperationDefinitionNode>
+    operation.directives = [
+        {
+            kind: "Directive",
+            name: {
+                kind: "Name",
+                value: "anomalies"
+            }
+        },
+        {
+            kind: "Directive",
+            name: {
+                kind: "Name",
+                value: "sample"
+            },
+            arguments: [
+                {
+                    kind: "Argument",
+                    name: {
+                        kind: "Name",
+                        value: "count"
+                    },
+                    value: {
+                        kind: "IntValue",
+                        value: "0"
+                    }
+                }
+            ]
+        }
+    ];
+    (operation.selectionSet.selections[0] as Writeable<FieldNode>).arguments = [
+        {
+            "kind": "Argument",
+            "name": {
+                "kind": "Name",
+                "value": "limit"
+            },
+            "value": {
+                "kind": "IntValue",
+                "value": maxSize.toString()
+            }
+        }
+    ]
+    return print(newQuery)
+}
 export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, query, product}) => {
 
     const apiRef = useGridApiRef();
@@ -95,7 +144,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
     const [filter, setFilter] = useState(0)
     const [filterModel, setFilterModel] = useState<GridFilterModel>({
         logicOperator: GridLogicOperator.And,
-        items: [{field: '__score__', value: -.25, operator: '<'}],
+        items: [{field: '__score__', value: 0, operator: '<'}],
     })
     const debouncedAnomaliesVariables = useDebounce<AnomaliesOptionsVariables>(AnomaliesVariables, 1000)
 
@@ -115,105 +164,32 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
 
     useEffect(() => {
         if (query) {
-            setColumns(getFieldDescriptors(query, schema))
-            setAnomaliesQuery(print(query))
+            const {maxSize} = debouncedAnomaliesVariables
+            setAnomaliesQuery(convertToAnomaliesQuery(print(query), maxSize))
         }
-    }, [query, schema])
+    }, [query, schema, debouncedAnomaliesVariables])
 
     useEffect(() => {
-        const gridColDefs = (columns?.map((
-            [fieldName, fieldType]) => {
-            const colType = GridTypeMap[(fieldType.type as GraphQLScalarType).name] || 'string'
-            const valueGetter = colType === 'dateTime' ? (value: string) => new Date(value) : undefined
-            return {
-                field: fieldName,
-                type: GridTypeMap[(fieldType.type as GraphQLScalarType).name] || 'string',
-                valueGetter
-            }
-        }) as GridColDef[])?.concat(
-            [
-                {
-                    field: '__score__',
-                    type: 'number',
-                    headerName: 'Anomaly Score'
-                },
-                {
-                    field: '__index__',
-                    type: 'number',
-                    headerName: 'Row'
-                }
-            ]
-        )
-        setGridColumns(gridColDefs || [])
-    }, [columns]);
-
-    useEffect(() => {
+        const {maxSize} = debouncedAnomaliesVariables
         if (product) {
             const baseType = getBaseType(product.type) as GraphQLObjectType;
             const fields = Object.entries(baseType.getFields() || {})
                 .filter(([_, field]) => isLeafType(getBaseType(field.type)))
-            const fieldDescriptors: Array<FieldDescriptor> = fields.map((i) => [...i, baseType])
-            setColumns(fieldDescriptors)
             const fieldList = fields.map(([name, _]) => name).join(' ')
             const query = `query find${baseType.name} { ${baseType.name} { ${fieldList} } }`
-            setAnomaliesQuery(query)
+            setAnomaliesQuery(convertToAnomaliesQuery(query, maxSize))
         }
-    }, [product]);
+    }, [product, debouncedAnomaliesVariables]);
 
     useEffect(() => {
         const {maxSize} = debouncedAnomaliesVariables
         setAnomaliesQuery((prev) => {
             if (prev) {
-                const newQuery = gql(prev)
-                const operation = newQuery.definitions[0] as Writeable<OperationDefinitionNode>
-                operation.directives = [
-                    {
-                        kind: "Directive",
-                        name: {
-                            kind: "Name",
-                            value: "anomalies"
-                        }
-                    },
-                    {
-                        kind: "Directive",
-                        name: {
-                            kind: "Name",
-                            value: "sample"
-                        },
-                        arguments: [
-                            {
-                                kind: "Argument",
-                                name: {
-                                    kind: "Name",
-                                    value: "count"
-                                },
-                                value: {
-                                    kind: "IntValue",
-                                    value: "0"
-                                }
-                            }
-                        ]
-                    }
-                ];
-                (operation.selectionSet.selections[0] as Writeable<FieldNode>).arguments = [
-                    {
-                        "kind": "Argument",
-                        "name": {
-                            "kind": "Name",
-                            "value": "limit"
-                        },
-                        "value": {
-                            "kind": "IntValue",
-                            "value": maxSize.toString()
-                        }
-                    }
-                ]
-                console.log(print(newQuery))
-                return print(newQuery)
+                convertToAnomaliesQuery(prev, maxSize)
             }
             return prev
         })
-    }, [anomaliesQuery, debouncedAnomaliesVariables])
+    }, [debouncedAnomaliesVariables])
 
     useEffect(() => {
         if (open) {
@@ -240,10 +216,28 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                 const rows = await response.json() as GraphQLResponse
                 const firstItem = rows.extensions.anomalies[Object.keys(rows.extensions.anomalies)[0]]
                 const flatRows = firstItem.map((i) => flatten(i)) as AnomalyFieldType[]
+                const cols = [...new Set(_.flatten(flatRows.map(Object.keys)))].map((field) => {
+                    switch (field) {
+                        case '__score__':
+                            return {
+                                field: '__score__',
+                                type: 'number',
+                                headerName: 'Anomaly Score'
+                            };
+                        case '__index__':
+                            return {
+                                field: '__index__',
+                                type: 'number',
+                                headerName: 'Row'
+                            }
+                        default:
+                            return {field};
+                    }
+                });
+                setGridColumns(cols.sort((a, b) => a.field.localeCompare(b.field)) as GridColDef[])
                 setRows(flatRows || [])
                 setTotalRowsAnalyzed((rows.extensions.actualDatasetSize[Object.keys(rows.extensions.anomalies)[0]]))
                 setLoading(false)
-                setFilter(-.25)
                 setTimeout(() => {
                     apiRef.current.autosizeColumns(autosizeOptions).then().catch()
                 }, 1)
@@ -252,7 +246,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                 setLoading(false)
             })
         }
-    }, [adminSecret, id, open, product?.type, anomaliesQuery, role, apiRef]);
+    }, [adminSecret, anomaliesQuery, apiRef, id, open, role]);
     let rowCounter = 0;
 
     if (open && (product || query)) {

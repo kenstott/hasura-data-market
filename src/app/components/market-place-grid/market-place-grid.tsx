@@ -68,7 +68,7 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
         return (
             <Box>
                 <Grid className={styles['grid-container']} container spacing={2}>
-                    {products?.filter((_, index) => search?.test(searchable[index]))
+                    {products?.filter((_, index) => !search || search?.test(searchable[index]))
                         .map((item,) => (
                             <Grid xs={12} sm={6} md={4} key={item.name}>
                                 <MarketPlaceCard product={item}/>

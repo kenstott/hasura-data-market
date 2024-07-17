@@ -74,13 +74,15 @@ export const getFieldDescriptors = (query: DocumentNode, schema?: GraphQLSchema 
     for (const query of queries) {
         for (const field of query.selectionSet.selections as FieldNode[]) {
             const fieldType = queryFields[field.name.value]
-            const baseType = getBaseType(fieldType.type) as GraphQLObjectType
-            selectedFields = selectedFields.concat(getFieldDescriptorsLoop({
-                type: baseType,
-                selectionSet: field.selectionSet,
-                fragments,
-                schema
-            }))
+            if (fieldType) {
+                const baseType = getBaseType(fieldType.type) as GraphQLObjectType
+                selectedFields = selectedFields.concat(getFieldDescriptorsLoop({
+                    type: baseType,
+                    selectionSet: field.selectionSet,
+                    fragments,
+                    schema
+                }))
+            }
         }
     }
     return selectedFields

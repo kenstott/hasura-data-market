@@ -35,6 +35,7 @@ export const RequestQuery: React.FC = () => {
         modifiedProductRequestQuery
     } = useCurrentProductContext()
 
+
     const {schema} = useGraphQLSchemaContext();
     const {adminSecret, role, id} = useLoginContext()
     const [query, setQuery] = useState<string | undefined>(productRequestQuery ? print(productRequestQuery) : undefined)
@@ -77,7 +78,6 @@ export const RequestQuery: React.FC = () => {
     }, [fetcher, headers]);
 
     return (
-
         <GraphiQLX
             fetcher={(attributes, opts) => fetcher.current(attributes, opts)}
             disableTabs={true}
@@ -96,9 +96,12 @@ export const RequestQuery: React.FC = () => {
             onEditOperationName={setOperationName}
             toolbar={{
                 additionalContent: [
-                    <ProfileButton key="profile-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>,
-                    <SampleButton key="sample-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>,
-                    <AnomaliesButton key="anomalies-button" queryAST={modifiedProductRequestQuery} setQuery={setQuery}/>
+                    <ProfileButton key="profile-button" queryAST={modifiedProductRequestQuery}
+                                   setQuery={setQuery}/>,
+                    <SampleButton key="sample-button" queryAST={modifiedProductRequestQuery}
+                                  setQuery={setQuery}/>,
+                    <AnomaliesButton key="anomalies-button" queryAST={modifiedProductRequestQuery}
+                                     setQuery={setQuery}/>
                 ],
             }}
         >
@@ -110,11 +113,11 @@ export const RequestQuery: React.FC = () => {
                                       headers={headers} format={FileFormat.JSON} response={response}>JSON
                     (Response)</ExportResponseButton>
                 <ExportResponseButton query={query} operationName={operationName} variables={variables}
-                                      headers={headers} format={FileFormat.ARROW}>ARROW</ExportResponseButton>
+                                      headers={headers}
+                                      format={FileFormat.ARROW}>ARROW</ExportResponseButton>
             </GraphiQL.Footer>
         </GraphiQLX>
-
-    );
+    )
 }
 
 export default RequestQuery;

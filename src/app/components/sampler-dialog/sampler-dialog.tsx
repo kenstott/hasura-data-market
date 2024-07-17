@@ -180,7 +180,7 @@ export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, quer
             }
             return prev
         })
-    }, [sampleQuery, debouncedSampleVariables])
+    }, [debouncedSampleVariables])
 
     useEffect(() => {
         if (product) {
@@ -193,7 +193,7 @@ export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, quer
             const query = `query find${baseType.name} { ${baseType.name} { ${fieldList} } }`
             setSampleQuery(query)
         }
-    }, [sampleQuery, product, debouncedSampleVariables]);
+    }, [product]);
 
     useEffect(() => {
         if (open) {
@@ -231,7 +231,7 @@ export const SamplerDialog: React.FC<SamplerDialogProps> = ({open, onClose, quer
                 setLoading(false)
             })
         }
-    }, [adminSecret, id, open, product?.type, sampleQuery, role, apiRef]);
+    }, [adminSecret, apiRef, id, open, role, sampleQuery]);
     let rowCounter = 0;
 
     if (open && (product || query)) {
