@@ -1,4 +1,4 @@
-import type {Fetcher} from "@graphiql/toolkit";
+import type {Fetcher, FetcherReturnType} from "@graphiql/toolkit";
 import process from "process";
 
 export function createFetcher(setResponse?: (response: string) => void) {
@@ -18,9 +18,10 @@ export function createFetcher(setResponse?: (response: string) => void) {
                 credentials: 'same-origin',
             },
         );
-        const response = await data.json()
+        const text = await data.text()
+        const response = JSON.parse(text)
         setResponse?.(response)
-        return response
+        return response as FetcherReturnType
     };
     return fetcher;
 }

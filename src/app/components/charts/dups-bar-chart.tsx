@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {BarChart} from '@mui/x-charts';
 import {Box, Button} from "@mui/material";
-import {DataGrid, GridToolbar} from "@mui/x-data-grid";
+import {DataGridPro, GridToolbar} from "@mui/x-data-grid-pro";
 
 export interface DupsBarChartProps {
     data?: Record<string, number>
@@ -30,7 +30,7 @@ export const DupsBarChart: React.FC<DupsBarChartProps> = ({data}) => {
                     yAxis={[{max: Math.max(...values) * 1.1}]}/>
                 <Button onClick={() => setAll(!all)}>View All</Button>
                 {all && (<Box style={{height: '50vh'}}>
-                    <DataGrid
+                    <DataGridPro
                         density={'compact'}
                         slots={{toolbar: GridToolbar}}
                         rows={gridData}

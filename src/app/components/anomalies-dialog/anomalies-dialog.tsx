@@ -1,32 +1,31 @@
 import React, {useEffect, useState} from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
-import {Box, DialogContent, FormControl, Input, Slider, Stack, Typography} from "@mui/material";
+import {Box, DialogContent, FormControl, IconButton, Input, Slider, Snackbar, Stack, Typography} from "@mui/material";
 import {Product} from "../current-product-context/current-product-context";
 import {
     DocumentNode,
     FieldNode,
     GraphQLObjectType,
-    GraphQLScalarType,
     isLeafType,
     OperationDefinitionNode,
     print
 } from "graphql";
-import {getBaseType} from "../market-place-card/market-place-card";
 import {useLoginContext} from "../login-context/login-context";
 import process from "process";
-import {DataGrid, GridColDef, GridColType, GridFilterModel, GridToolbar, useGridApiRef} from '@mui/x-data-grid';
+import {DataGridPro, GridColDef, GridFilterModel, GridToolbar, useGridApiRef} from '@mui/x-data-grid-pro';
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import {useDebounce} from "../use-debounce";
 import gql from "graphql-tag";
 import {Writeable} from "../product-table/product-table";
 import {flatten} from 'flat'
 import {AnomalyFieldType, GraphQLResponse} from "../helpers/graphql-response";
-import {FieldDescriptor, getFieldDescriptors} from "../helpers/get-field-descriptors";
 import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
 import BugReportIcon from "@mui/icons-material/BugReport";
-import {GridLogicOperator} from "@mui/x-data-grid/models/gridFilterItem";
+import {GridLogicOperator} from "@mui/x-data-grid-pro";
 import _ from 'lodash';
+import CloseIcon from "@mui/icons-material/Close";
+import {getBaseType} from "../helpers/get-base-type";
 
 
 export interface AnomaliesDialogProps {
@@ -70,15 +69,15 @@ const autosizeOptions = {
     expand: true
 };
 
-const GridTypeMap: Record<string, GridColType> = {
-    'Boolean': 'boolean',
-    'Int': 'number',
-    'float8': 'number',
-    'float16': 'number',
-    'String': 'string',
-    'timestamp': 'dateTime',
-    'timestampz': 'dateTime'
-}
+// const GridTypeMap: Record<string, GridColType> = {
+//     'Boolean': 'boolean',
+//     'Int': 'number',
+//     'float8': 'number',
+//     'float16': 'number',
+//     'String': 'string',
+//     'timestamp': 'dateTime',
+//     'timestampz': 'dateTime'
+// }
 
 const convertToAnomaliesQuery = (prev: string, maxSize: number): string => {
     const newQuery = gql(prev)
@@ -138,7 +137,6 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
         maxSize: 100000
     })
     const [rows, setRows] = useState<AnomalyFieldType[]>()
-    const [columns, setColumns] = useState<Array<FieldDescriptor>>()
     const [gridColumns, setGridColumns] = useState<GridColDef[]>([])
     const [totalRowsAnalyzed, setTotalRowsAnalyzed] = useState(0)
     const [filter, setFilter] = useState(0)
@@ -146,6 +144,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
         logicOperator: GridLogicOperator.And,
         items: [{field: '__score__', value: 0, operator: '<'}],
     })
+    const [errorMessage, setErrorMessage] = useState<string>('')
     const debouncedAnomaliesVariables = useDebounce<AnomaliesOptionsVariables>(AnomaliesVariables, 1000)
 
     useEffect(() => {
@@ -163,40 +162,43 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
     }, [filter]);
 
     useEffect(() => {
-        if (query) {
+        if (query && open) {
             const {maxSize} = debouncedAnomaliesVariables
             setAnomaliesQuery(convertToAnomaliesQuery(print(query), maxSize))
         }
-    }, [query, schema, debouncedAnomaliesVariables])
+    }, [query, schema, debouncedAnomaliesVariables, open])
 
     useEffect(() => {
         const {maxSize} = debouncedAnomaliesVariables
-        if (product) {
+        if (product && open) {
             const baseType = getBaseType(product.type) as GraphQLObjectType;
             const fields = Object.entries(baseType.getFields() || {})
                 .filter(([_, field]) => isLeafType(getBaseType(field.type)))
             const fieldList = fields.map(([name, _]) => name).join(' ')
-            const query = `query find${baseType.name} { ${baseType.name} { ${fieldList} } }`
+            const query = `query find__${baseType.name} { ${product.name} { ${fieldList} } }`
             setAnomaliesQuery(convertToAnomaliesQuery(query, maxSize))
         }
-    }, [product, debouncedAnomaliesVariables]);
-
-    useEffect(() => {
-        const {maxSize} = debouncedAnomaliesVariables
-        setAnomaliesQuery((prev) => {
-            if (prev) {
-                convertToAnomaliesQuery(prev, maxSize)
-            }
-            return prev
-        })
-    }, [debouncedAnomaliesVariables])
+    }, [product, debouncedAnomaliesVariables, open]);
 
     useEffect(() => {
         if (open) {
+            const {maxSize} = debouncedAnomaliesVariables
+            setAnomaliesQuery((prev) => {
+                if (prev) {
+                    convertToAnomaliesQuery(prev, maxSize)
+                }
+                return prev
+            })
+        }
+    }, [debouncedAnomaliesVariables, open])
+
+    useEffect(() => {
+        if (open && anomaliesQuery) {
             setLoading(true)
             const headers = {
                 'x-hasura-admin-secret': adminSecret,
-                'x-hasura-role': role,
+                'hasura_cloud_pat': adminSecret,
+                'x-hasura-role': process.env.NEXT_PUBLIC_EXPLORER_ROLE || '',
                 'x-hasura-user': id,
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -214,6 +216,10 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                 body
             }).then(async (response) => {
                 const rows = await response.json() as GraphQLResponse
+                if (rows.errors?.length) {
+                    setErrorMessage(`${rows.errors[0].message}. ${rows.errors[0].extensions?.['internal']?.error?.message || ''}`)
+                }
+
                 const firstItem = rows.extensions.anomalies[Object.keys(rows.extensions.anomalies)[0]]
                 const flatRows = firstItem.map((i) => flatten(i)) as AnomalyFieldType[]
                 const cols = [...new Set(_.flatten(flatRows.map(Object.keys)))].map((field) => {
@@ -242,7 +248,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                     apiRef.current.autosizeColumns(autosizeOptions).then().catch()
                 }, 1)
 
-            }).catch((error) => {
+            }).catch((_error) => {
                 setLoading(false)
             })
         }
@@ -263,7 +269,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                             min={-.5}
                             max={0}
                             value={filter}
-                            onChange={(event: Event, newValue: number | number[]) => {
+                            onChange={(_event: Event, newValue: number | number[]) => {
                                 setFilter(newValue as number);
                             }}/>
                 </Stack>
@@ -272,7 +278,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
             </DialogTitle>
             <DialogCloseButton onClose={onClose}/>
             <DialogContent><Box style={{height: '80vh'}}>
-                <DataGrid
+                <DataGridPro
                     apiRef={apiRef}
                     loading={loading}
                     slots={{toolbar: GridToolbar}}
@@ -286,6 +292,7 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                     getRowHeight={() => 'auto'}
                     getRowId={() => rowCounter++}
                     initialState={{
+                        pinnedColumns: {left: ['__score__', '__index__']},
                         sorting: {
                             sortModel: [{field: '__score__', sort: 'asc'}],
                         },
@@ -294,6 +301,25 @@ export const AnomaliesDialog: React.FC<AnomaliesDialogProps> = ({open, onClose, 
                 />
             </Box>
             </DialogContent>
+            {errorMessage.length > 0 && <Snackbar
+                anchorOrigin={{vertical: 'top', horizontal: 'center'}}
+                open={errorMessage.length > 0}
+                autoHideDuration={6000}
+                onClose={() => {
+                    setErrorMessage('')
+                }}
+                message={errorMessage}
+                action={<React.Fragment>
+                    <IconButton
+                        size="small"
+                        aria-label="close"
+                        color="inherit"
+                        onClick={() => setErrorMessage('')}
+                    >
+                        <CloseIcon fontSize="small"/>
+                    </IconButton>
+                </React.Fragment>}
+            />}
         </Dialog>
     }
     return null

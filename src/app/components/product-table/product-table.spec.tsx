@@ -4,7 +4,7 @@ import ProductTable from './product-table';
 
 describe('ProductFieldTable', () => {
     it('should render successfully', () => {
-        const {baseElement} = render(<ProductTable/>);
+        const {baseElement} = render(<ProductTable path={""}/>);
         expect(baseElement).toBeTruthy();
     });
 });

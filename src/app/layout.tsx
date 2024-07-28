@@ -1,92 +1,90 @@
 'use client'
-import styles from './components/market-place-grid/market-place-grid.module.scss'
-import React, {ReactNode, useEffect, useState} from 'react';
-import {AppBar, Badge, Box, Button, CssBaseline, IconButton, InputBase, Toolbar, Typography} from '@mui/material';
+import React, {ReactNode, useState} from 'react';
+import {AppBar, Box, Button, CssBaseline, Toolbar, Tooltip, Typography} from '@mui/material';
 import {GraphQLSchemaProvider} from "./components/graphql-schema-context/graphql-schema-context";
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SearchIcon from '@mui/icons-material/Search';
 import {CurrentProductContextProvider} from "./components/current-product-context/current-product-context";
 import {usePathname} from 'next/navigation';
 import {LoginProvider} from "./components/login-context/login-context";
 import LoginDialog from "./components/login-dialog/login-dialog";
-import {SearchContextProvider, useSearchContext} from "./components/search-context/search-context";
+import {SearchContextProvider} from "./components/search-context/search-context";
+import {LicenseInfo} from '@mui/x-license';
+import {ShoppingCartContextProvider} from "./components/shopping-cart-context/shopping-cart-context";
+import {ShoppingCartDialog} from "./components/shopping-cart/shopping-cart";
+import {PoliciesContextProvider} from "./components/policies-context/policies-context";
+import {ShoppingCartButton} from "./shopping-cart-button";
+import {ShoppingCartChanged} from "./shopping-cart-changed";
+import {Search} from "./search";
 
+LicenseInfo.setLicenseKey('79d1cb460e9bc5cd7369165827a395a9Tz05NDQ0OSxFPTE3NTI4NDQ2ODIwMDAsUz1wcm8sTE09cGVycGV0dWFsLEtWPTI=');
 
 interface LayoutProps {
     children: ReactNode;
 }
 
 
-const Search: React.FC = () => {
-    const {setSearch} = useSearchContext()
-    const [displayedSearch, setDisplayedSearch] = useState("")
-    const [isInputVisible, setInputVisible] = useState(false);
-    useEffect(() => {
-        setSearch(new RegExp(`^.*${displayedSearch}.*$`, 'i'))
-    }, [displayedSearch, setSearch]);
-    return <>
-        {isInputVisible && (<InputBase
-            value={displayedSearch}
-            onChange={(event) => {
-                setDisplayedSearch(event.target.value)
-            }}
-            placeholder="Search..."
-            className={styles.search}
-        />)}
-        <IconButton className={styles.search} onClick={() => {
-            setInputVisible(!isInputVisible)
-        }}>
-            <SearchIcon/>
-        </IconButton>
-    </>
-}
 const Layout: React.FC<LayoutProps> = ({children}) => {
 
     const pathname = usePathname()
     const [loginOpen, setLoginOpen] = useState(false)
+    const [cartOpen, setCartOpen] = useState(false)
 
     return (
         <html>
         <body>
         <GraphQLSchemaProvider>
-            <CurrentProductContextProvider>
-                <LoginProvider>
-                    <SearchContextProvider>
-                        <Box className="app" maxWidth={"100%"} sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            marginX: '0vh',
-                            height: '100vh', // Set the height to 100% of the viewport height
-                        }}>
-                            <CssBaseline/>
-                            <AppBar position="static">
-                                <Toolbar>
-                                    <Typography variant="h6" component="div" sx={{flexGrow: 1}}>
-                                        Data Marketplace
-                                    </Typography>
-                                    <Button href={'/'} color="inherit">Explore</Button>
-                                    <Button href={'/pages/marketplace'} color="inherit">Marketplace</Button>
-                                    <Button color="inherit" onClick={() => setLoginOpen(true)}>Login</Button>
-                                    {pathname === '/pages/marketplace' && (<Search/>)}
-                                    <IconButton edge="end" color="inherit">
-                                        <Badge badgeContent={undefined} color="secondary">
-                                            <ShoppingCartIcon/>
-                                        </Badge>
-                                    </IconButton>
-                                </Toolbar>
-                            </AppBar>
-                            <Box
-                                sx={{
-                                    flex: 1,
-                                    overflowY: 'auto',
+            <ShoppingCartContextProvider>
+                <CurrentProductContextProvider>
+                    <LoginProvider>
+                        <PoliciesContextProvider>
+                            <SearchContextProvider>
+                                <Box className="app" maxWidth={"100%"} sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    marginX: '0vh',
+                                    height: '100vh', // Set the height to 100% of the viewport height
                                 }}>
-                                {children}
-                            </Box>
-                        </Box>
-                        <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)}/>
-                    </SearchContextProvider>
-                </LoginProvider>
-            </CurrentProductContextProvider>
+                                    <CssBaseline/>
+                                    <AppBar position="static">
+                                        <Toolbar>
+                                            <Typography variant="h6" component="div" sx={{flexGrow: 1}}>
+                                                Data Catalog
+                                            </Typography>
+                                            <Tooltip title={"View inventory statistics"}>
+                                                <Button href={'/pages/dashboard'} color="inherit">Dashboard</Button>
+                                            </Tooltip>
+                                            <Tooltip title={"Subscribe to data"}>
+                                                <Button href={'/pages/marketplace'}
+                                                        color="inherit">Subscriptions</Button>
+                                            </Tooltip>
+                                            <Tooltip title={"Design a data composition\nto solve a problem"}>
+                                                <Button href={'/pages/request-query'} color="inherit">Explore</Button>
+                                            </Tooltip>
+                                            <Button color="inherit" onClick={() => setLoginOpen(true)}>Login</Button>
+                                            {(pathname === '/pages/marketplace' || pathname === '/') && (<Search/>)}
+                                            <ShoppingCartButton onClick={() => setCartOpen(true)}/>
+                                        </Toolbar>
+                                    </AppBar>
+                                    <Box
+                                        className={'portal'}
+                                        sx={{
+                                            flexGrow: 1,
+                                            overflowY: 'auto',
+                                        }}>
+                                        {children}
+                                    </Box>
+                                </Box>
+                                <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)}/>
+                                {cartOpen && <ShoppingCartDialog
+                                    open={cartOpen}
+                                    onSubmittedRequest={() => {/* ignore */
+                                    }}
+                                    onClose={() => setCartOpen(false)}/>}
+                                <ShoppingCartChanged/>
+                            </SearchContextProvider>
+                        </PoliciesContextProvider>
+                    </LoginProvider>
+                </CurrentProductContextProvider>
+            </ShoppingCartContextProvider>
         </GraphQLSchemaProvider>
         </body>
         </html>

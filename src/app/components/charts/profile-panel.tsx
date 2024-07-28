@@ -108,6 +108,9 @@ const panelType = (t?: GraphQLScalarType) => {
         if (t.name.match(/int|float/i)) {
             return 'numeric'
         }
+        if (t.name.match(/char/i)) {
+            return 'string'
+        }
         if (t.name === 'String') {
             return 'string'
         }

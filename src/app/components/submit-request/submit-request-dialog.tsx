@@ -10,7 +10,7 @@ import DialogContent from "@mui/material/DialogContent";
 import {
     Accordion,
     AccordionDetails,
-    AccordionSummary,
+    AccordionSummary, Box,
     Button,
     DialogActions,
     Divider,
@@ -33,6 +33,12 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CancelIcon from "@mui/icons-material/Cancel";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import {useShoppingCartContext} from "../shopping-cart-context/shopping-cart-context";
+import {DatePicker} from '@mui/x-date-pickers/DatePicker';
+import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
+import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import {useLoginContext} from "../login-context/login-context";
 
 /* eslint-disable-next-line */
 export interface SubmitRequestDialogProps {
@@ -41,10 +47,10 @@ export interface SubmitRequestDialogProps {
     onCompleted: () => void
 }
 
-type ReadOrSelect = 'read' | 'select'
-type AllOrSelected = 'all' | 'selected'
+export type ReadOrSelect = 'read' | 'select'
+export type AllOrSelected = 'all' | 'selected'
 
-interface SelectedDataset {
+export interface SelectedDataset {
     objectType: GraphQLObjectType
     readOrSelect: ReadOrSelect
     allOrSelected: AllOrSelected
@@ -58,9 +64,13 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
     const [selectedDatasets, setSelectedDatasets] =
         useState<SelectedDataset[]>()
     const [businessReason, setBusinessReason] = useState('')
-    const [businessReasponHelperText, setBusinessReasonHelperText] = useState('0/500 characters')
-    const [bueinessReasonError, setBusinessReasonError] = useState(true)
-
+    const [businessReasonHelperText, setBusinessReasonHelperText] = useState('0/500 characters')
+    const [invalidRequest, setInvalidRequest] = useState(true)
+    const {addToShoppingCart} = useShoppingCartContext()
+    const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(dayjs(new Date()))
+    const [endDate, setEndDate] = useState<dayjs.Dayjs | null>()
+    const {role} = useLoginContext()
+    
     useEffect(() => {
         if (modifiedProductRequestQuery) {
             const fieldDescriptors = getFieldDescriptors(modifiedProductRequestQuery, schema)
@@ -80,38 +90,65 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
     }, [modifiedProductRequestQuery, schema]);
 
     useEffect(() => {
+        setEndDate(startDate?.add(parseInt(process.env.NEXT_PUBLIC_DEFAULT_SECURITY_POLICY_LENGTH_IN_DAYS || '1'), 'day') || null)
+    }, [startDate]);
+
+    useEffect(() => {
         if (businessReason.length < 500) {
-            setBusinessReasonError(businessReason.length === 0)
             setBusinessReasonHelperText(`${businessReason.length}/500 characters`)
         }
     }, [businessReason.length]);
+
+    useEffect(() => {
+        setInvalidRequest(!startDate || !endDate || startDate > endDate || businessReason.length === 0 || businessReason.length > 500)
+    }, [businessReason.length, endDate, startDate])
+
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth={"xl"}>
             <DialogCloseButton onClose={onClose}/>
-            <DialogTitle>Request Authorization for the Following Datasets</DialogTitle>
+            <DialogTitle>Request Access to the Following Datasets</DialogTitle>
             <DialogContent>
-                <Paper sx={{padding: 1}}>
-                    <FormControl fullWidth>
-                        <InputLabel htmlFor={'business-reason'}>
-                            *Business justification for this data request
-                        </InputLabel>
-                        <Input required
-                               value={businessReason}
-                               onChange={(event) => setBusinessReason(event.target.value)}
-                               fullWidth name={'business-reason'}
-                               maxRows={5}
-                               multiline/>
-                        <FormHelperText>
-                            {businessReasponHelperText}
-                        </FormHelperText>
-                    </FormControl>
-                </Paper>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <Paper sx={{padding: 1}}>
+                        <FormControl fullWidth>
+                            <InputLabel htmlFor={'business-reason'}>
+                                *Business justification for this data request
+                            </InputLabel>
+                            <Input required
+                                   value={businessReason}
+                                   onChange={(event) => setBusinessReason(event.target.value)}
+                                   fullWidth name={'business-reason'}
+                                   maxRows={5}
+                                   multiline/>
+                            <FormHelperText>
+                                {businessReasonHelperText}
+                            </FormHelperText>
+                        </FormControl>
+                        <Box sx={{mt: 1}} display="flex" justifyContent="space-between">
+                            <FormControl fullWidth>
+                                <DatePicker
+                                    label="*Start Date"
+                                    value={startDate} // Add your state variable here
+                                    onChange={(newValue) => setStartDate(newValue)} // Add your state setter function here
+                                />
+                            </FormControl>
+                            <div style={{width: 10}}/>
+                            <FormControl fullWidth>
+                                <DatePicker
+                                    label="*End Date"
+                                    value={endDate}   // Add your state variable here
+                                    onChange={(newValue) => setEndDate(newValue)} // Add your state setter function here
+                                />
+                            </FormControl>
+                        </Box>
+                    </Paper>
+                </LocalizationProvider>
                 {selectedDatasets?.map(({
                                             objectType,
                                             readOrSelect,
                                             allOrSelected
                                         }, index) => {
-                    return (<Accordion>
+                    return (<Accordion key={index}>
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon/>}
                             aria-controls="panel1-content"
@@ -170,12 +207,12 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
                                     </TableHead>
                                     <TableBody>
                                         {selectedFields && selectedFields
-                                            .filter(([, , i], rowIndex) =>
+                                            .filter(([, , i]) =>
                                                 objectType.name === i.name
                                             ).filter((_, rowindex) => rowindex >= (pager[index] ?? 0) * 5
                                                 && rowindex < ((pager[index] ?? 0) + 1) * 5)
-                                            .map(([path, field]) => {
-                                                return (<TableRow>
+                                            .map(([path, field], index) => {
+                                                return (<TableRow key={index}>
                                                     <TableCell>{path}</TableCell>
                                                     <TableCell>{field.description}</TableCell>
                                                     <TableCell>{(field.type as GraphQLScalarType).name}</TableCell>
@@ -191,7 +228,7 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
                                 count={selectedFields?.filter(([, , i]) => objectType.name === i.name).length || 0}
                                 rowsPerPage={5}
                                 page={pager[index] || 0}
-                                onPageChange={(event, newPage) => {
+                                onPageChange={(_event, newPage) => {
                                     setPager((prev) => ({...prev, [index]: newPage}))
                                 }}
                             />
@@ -200,9 +237,21 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
                 })}
             </DialogContent>
             <DialogActions>
-                <Button disabled={bueinessReasonError} onClick={onCompleted} startIcon={<NavigateNextIcon/>}
+                <Button disabled={invalidRequest} onClick={() => {
+                    if (startDate && endDate && businessReason) {
+                        addToShoppingCart({
+                            selectedDatasets,
+                            selectedFields,
+                            businessReason,
+                            startDate: startDate.toDate(),
+                            endDate: endDate.toDate(),
+                            role
+                        })
+                    }
+                    onCompleted()
+                }} startIcon={<NavigateNextIcon/>}
                         color={'primary'} variant={'contained'}>
-                    Submit Request
+                    Add to Shopping Cart
                 </Button>
                 <Button
                     variant="outlined"

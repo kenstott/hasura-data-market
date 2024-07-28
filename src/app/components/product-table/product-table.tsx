@@ -1,330 +1,131 @@
-import {Product, useCurrentProductContext} from "../current-product-context/current-product-context";
+import {useCurrentProductContext} from "../current-product-context/current-product-context";
+import React, {ReactNode, useCallback, useEffect, useRef} from "react";
+import {GraphQLField, GraphQLObjectType, isLeafType, isObjectType} from "graphql";
 import {
-    Box,
-    Checkbox,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Typography
-} from "@mui/material";
-import {getBaseType} from "../market-place-card/market-place-card";
-import React, {ReactNode, useEffect, useState} from "react";
-import {
-    DirectiveNode,
-    FieldNode,
-    GraphQLField,
-    GraphQLObjectType,
-    GraphQLScalarType,
-    isLeafType,
-    isObjectType,
-    Kind,
-    OperationDefinitionNode,
-    print,
-    SelectionNode
-} from "graphql";
-import gql from "graphql-tag";
+    DataGridPro,
+    GRID_CHECKBOX_SELECTION_COL_DEF,
+    GRID_DETAIL_PANEL_TOGGLE_COL_DEF,
+    GRID_DETAIL_PANEL_TOGGLE_FIELD,
+    GridColDef,
+    GridRowId,
+    GridRowSelectionModel,
+    useGridApiRef
+} from "@mui/x-data-grid-pro";
+import {Maybe} from "graphql/jsutils/Maybe";
+import {getBaseType} from "../helpers/get-base-type";
+import {DetailPanelContent} from "./detail-panel-content";
 
-/* eslint-disable-next-line */
-export interface ProductFieldTableProps {
-    product?: Product
-}
-
-type CheckedAll = 'unchecked' | 'checked' | 'indeterminate'
-
-interface FieldTableProps {
-    product?: Product,
-    fields?: [string, GraphQLField<never, never>][]
+interface ProductTableProps {
+    product?: GraphQLField<never, never>,
     title?: ReactNode,
-    root?: boolean
+    path: string
 }
 
 export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
-type CheckedFields = Record<number, boolean>
+interface DatasourceRow {
+    id: number
+    name: string
+    description: Maybe<string>
+    type: string
+}
 
-const FieldTable: React.FC<FieldTableProps> =
-    ({
-         product,
-         fields,
-         title,
-         root
-     }) => {
-        const [checkedFieldRows, setCheckedFieldRows] = useState<CheckedFields>();
-        const [checkedAllFieldRows, setCheckedAllFieldRows] = useState<CheckedAll>('unchecked')
-        const {setProductRequestQuery, selectedRelationships, productRequestQuery} = useCurrentProductContext()
+const columns: GridColDef[] = [
+    {...GRID_DETAIL_PANEL_TOGGLE_COL_DEF},
+    {...GRID_CHECKBOX_SELECTION_COL_DEF},
+    {field: 'name', headerName: 'Name', width: 175},
+    {field: 'description', headerName: 'Description', width: 175},
+    {field: 'type', headerName: 'Type', width: 175}
+]
 
-        useEffect(() => {
-            const values = Object.values(checkedFieldRows || {})
-            const checked = values.filter(Boolean)
-            if (checked.length === 0) {
-                setCheckedAllFieldRows('unchecked')
-            } else if (fields?.length === checked.length) {
-                setCheckedAllFieldRows('checked')
-            } else {
-                setCheckedAllFieldRows('indeterminate')
-            }
-        }, [checkedFieldRows, fields])
+const ProductTable: React.FC<ProductTableProps> = ({product, path}) => {
+    const apiRef = useGridApiRef();
+    const fields = useRef<GraphQLField<never, never>[]>(Object.values((getBaseType(product?.type) as GraphQLObjectType)?.getFields?.() || {}))
+    const {updateSelectedFields, setCurrentProduct, selectedFields} = useCurrentProductContext()
+    const rows = useRef<DatasourceRow[]>(fields.current.map((field, id): DatasourceRow => ({
+        id,
+        name: field.name,
+        description: field.description,
+        type: field.type.toString()
+    })));
 
-        useEffect(() => {
-            if (product && productRequestQuery) {
-                const entries = Object.entries(checkedFieldRows || {}).reduce((acc, [name, checked]) => {
-                    if (checked && fields) {
-                        acc = [...acc, fields[parseInt(name)][1]]
-                    }
-                    return acc
-                }, root ? selectedRelationships ?? [] : [] as GraphQLField<never, never>[])
-                const newProductRequestQuery = gql(print(productRequestQuery))
-                const queryOperation = newProductRequestQuery?.definitions?.find(
-                    (def) => def.kind === 'OperationDefinition' && def.operation === 'query'
-                ) as Writeable<OperationDefinitionNode>;
-                const sampleDirective: DirectiveNode = {
-                    kind: Kind.DIRECTIVE,
-                    name: {
-                        kind: Kind.NAME,
-                        value: 'sample',
-                    },
-                    arguments: [
-                        {
-                            kind: 'Argument',
-                            name: {
-                                kind: 'Name',
-                                value: 'count'
-                            },
-                            value: {
-                                kind: 'IntValue',
-                                value: '100'
-                            }
-                        },
-                        {
-                            kind: 'Argument',
-                            name: {
-                                kind: 'Name',
-                                value: 'random'
-                            },
-                            value: {
-                                kind: 'BooleanValue',
-                                value: true
-                            }
-                        }
-                    ],
-                }
-                queryOperation.directives = [sampleDirective]
-                let baseQuery = (queryOperation?.selectionSet.selections[0] as Writeable<FieldNode>)
-                baseQuery.arguments = [
-                    {
-                        kind: "Argument",
-                        name: {
-                            kind: "Name",
-                            value: "limit"
-                        },
-                        value: {
-                            kind: "IntValue",
-                            value: "10000"
-                        }
-                    }
-                ]
-                if (baseQuery.name.value !== product.name) {
-                    baseQuery = baseQuery.selectionSet?.selections
-                        .find((i: SelectionNode) => (i as FieldNode).name.value === product.name) as Writeable<FieldNode>
-                }
+    const [expandedModel, setExpandedModel] = React.useState<GridRowId[]>([])
 
-                if (baseQuery) {
-                    if (!baseQuery.selectionSet) {
-                        baseQuery.selectionSet = {kind: "SelectionSet", selections: []}
-                    }
-
-                    // Append the new field to the selection set
-                    baseQuery.selectionSet.selections = (entries?.map(i => {
-                        return baseQuery.selectionSet?.selections
-                                .find(j => (j as FieldNode).name.value === i.name)
-                            ?? {
-                                kind: 'Field',
-                                name: {
-                                    kind: 'Name',
-                                    value: i.name,
-                                }
-                            }
-                    }) ?? []) as FieldNode[];
-                    if (print(productRequestQuery) !== print(newProductRequestQuery)) {
-                        setProductRequestQuery(newProductRequestQuery)
-                    }
-
-                }
-            }
-        }, [root, checkedFieldRows, fields, product, setProductRequestQuery, productRequestQuery, selectedRelationships])
-
-        useEffect(() => {
-            if (checkedAllFieldRows === 'checked' || checkedAllFieldRows === 'unchecked') {
-                setCheckedFieldRows((prevRows) => {
-                    return fields?.reduce((acc, _, index) => {
-                        return ({...acc, [index]: checkedAllFieldRows === 'checked'})
-                    }, prevRows) || {}
-                })
-            }
-        }, [checkedAllFieldRows, fields]);
-
-
-        const handleFieldCheckboxChange = (index: number) => {
-            setCheckedFieldRows((prev) => ({
-                ...prev,
-                [index]: !prev?.[index]
-            }))
-        };
-
-
-        return (checkedFieldRows &&
-            <TableContainer sx={{margin: 1}} component={Paper}>
-                <Typography variant="h6" gutterBottom>
-                    {title !== undefined ? title : 'Fields'}
-                </Typography>
-                <Table sx={{
-                    m: 2,
-                    '& .MuiTableCell-sizeMedium': {
-                        padding: '0px 5px',
-                    },
-                }}>
-                    <TableHead>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Description</TableCell>
-                        <TableCell>Type</TableCell>
-                        <TableCell><Checkbox
-                            checked={checkedAllFieldRows === 'checked'}
-                            indeterminate={checkedAllFieldRows === 'indeterminate'}
-                            onChange={() => {
-                                if (checkedAllFieldRows === 'checked') {
-                                    setCheckedAllFieldRows('unchecked')
-                                } else {
-                                    setCheckedAllFieldRows('checked')
-                                }
-                            }}
-                        /></TableCell>
-                    </TableHead>
-                    {checkedFieldRows && <TableBody>
-                        {fields?.map(([name, field], index) => (
-                            <TableRow key={index}>
-                                <TableCell>{name}</TableCell>
-                                <TableCell>{field.description}</TableCell>
-                                <TableCell>{(field.type as GraphQLScalarType).name || ''}</TableCell>
-                                <TableCell>
-                                    <Checkbox color="primary" checked={checkedFieldRows[index]}
-                                              onChange={() => handleFieldCheckboxChange(index)}/>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>}
-                </Table>
-            </TableContainer>)
-    }
-
-export function ProductTable({product}: ProductFieldTableProps) {
-    const [fields, setFields] = useState<[string, GraphQLField<never, never>][]>();
-    const [relationships, setRelationships] = useState<[string, GraphQLField<never, never>][]>();
-    const [checkedRelationshipRows, setCheckedRelationshipRows] = useState<CheckedFields>({});
-
-    const {
-        selectedRelationships,
-        setSelectedRelationships,
-        setProductRequestQuery
-    } = useCurrentProductContext()
-
-    useEffect(() => {
-        if (product?.type) {
-            const baseType = getBaseType(product?.type)
-            const query = gql(`
-            query find${baseType} {
-                ${baseType} {
-                    fake
-                }
-            }`)
-            setProductRequestQuery(query)
+    const getDetailPanelContent = React.useCallback((row: DatasourceRow) => {
+        if (isObjectType(getBaseType(fields.current[row.id].type))) {
+            return <DetailPanelContent field={fields.current[row.id]} path={(path ? path + '.' : '') + product?.name}/>
         }
-    }, [product?.type, setProductRequestQuery]);
+    }, [path, product]);
 
-    const handleRelationshipCheckboxChange = (index: number) => {
-        setCheckedRelationshipRows((prevCheckedRows) => ({
-            ...prevCheckedRows,
-            [index]: !prevCheckedRows[index],
-        }));
-    };
-    useEffect(() => {
-        const result = Object.entries(checkedRelationshipRows).reduce((acc, [index, checked]) => {
-            if (checked && relationships) {
-                acc.push(relationships[parseInt(index)][1])
+    const getSelectionModel = useCallback(() => {
+        const pathMinus1 = path.split('.').filter(Boolean).concat(product?.name || '').slice(1)
+        return Object.entries(selectedFields).reduce<GridRowId[]>((acc, [name, [selected, _field]]) => {
+            if (selected) {
+                const pathFields = fields.current.map((i) => {
+                    return [...pathMinus1].concat(i.name).filter(Boolean).join('.')
+                })
+                const index = pathFields.indexOf(name)
+                if (selected && index !== -1) {
+                    acc = acc.concat([index])
+                }
             }
             return acc
-        }, [] as Product[])
-        setSelectedRelationships(result)
-    }, [checkedRelationshipRows, relationships, setSelectedRelationships]);
+        }, expandedModel)
+    }, [expandedModel, path, product?.name, selectedFields])
+
+    const updateSelectionState = useCallback((selections: GridRowSelectionModel) => {
+        if (selections) {
+            const pathMinus1 = path.split('.').filter(Boolean).concat(product?.name || '').slice(1).join('.')
+            const fieldMap = fields.current.reduce<Record<string, [boolean, GraphQLField<never, never>]>>((acc, field, id) => {
+                const b = getBaseType(field.type)
+                const c = isLeafType(b)
+                return {
+                    ...acc,
+                    [field.name]: [c && selections.indexOf(id) !== -1, field]
+                };
+            }, {}) || {}
+            const objectMap = fields.current.reduce<Record<string, [boolean, GraphQLField<never, never>]>>((acc, field, id) => {
+                const b = getBaseType(field.type)
+                const c = isLeafType(b)
+                return {
+                    ...acc,
+                    [field.name]: [!c && selections.indexOf(id) === -1, field]
+                };
+            }, {}) || {}
+            updateSelectedFields(pathMinus1, fieldMap, objectMap)
+        }
+    }, [path, product?.name, updateSelectedFields])
 
     useEffect(() => {
-        if (product) {
-            const baseType = getBaseType(product?.type)
-            if (isObjectType(baseType)) {
-                const fields = Object.entries(baseType.getFields())
-                    .filter(([_, field]) => isLeafType(getBaseType(field.type)))
-                const relationships = Object.entries(baseType.getFields())
-                    .filter(([name, field]) => !name.endsWith('_aggregate') && isObjectType(getBaseType(field.type)))
-                setFields(fields)
-                setRelationships(relationships)
-            }
+        if (product && !path.length) {
+            setCurrentProduct(product)
         }
-    }, [product, product?.type])
+    }, [path.length, product, setCurrentProduct])
 
-    const RelationshipsTable = () => <TableContainer sx={{m: 1}} component={Paper}>
-        <Typography variant="h6" gutterBottom>
-            Relationships
-        </Typography>
-        <Table sx={{
-            m: 2,
-            '& .MuiTableCell-sizeMedium': {
-                padding: '0 0',
-            },
+    return <DataGridPro
+        apiRef={apiRef}
+        keepNonExistentRowsSelected
+        checkboxSelection
+        columns={columns}
+        rows={rows.current}
+        rowSelectionModel={getSelectionModel()}
+        detailPanelExpandedRowIds={expandedModel}
+        onDetailPanelExpandedRowIdsChange={setExpandedModel}
+        pinnedColumns={{left: [GRID_DETAIL_PANEL_TOGGLE_FIELD]}}
+        onRowSelectionModelChange={(model, _details) => {
+            setExpandedModel(model.filter((i) => isObjectType(getBaseType(fields.current[i as number].type))))
+            updateSelectionState(model)
         }}
-        >
-            <TableHead>
-                <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Include</TableCell>
-            </TableHead>
-            <TableBody>
-                {relationships?.map(([name, field], index) => (
-                    <TableRow key={index}>
-                        <TableCell>{name}</TableCell>
-                        <TableCell>{field.description}</TableCell>
-                        <TableCell>{(getBaseType(field.type) as GraphQLObjectType).name || ''}</TableCell>
-                        <TableCell>
-                            <Checkbox color="primary" checked={checkedRelationshipRows[index]}
-                                      onChange={() => handleRelationshipCheckboxChange(index)}/>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    </TableContainer>
-
-    const RelationshipTables = selectedRelationships?.map((i, index) => {
-        const baseType = getBaseType(i.type) as GraphQLObjectType
-        const fields = Object.entries(baseType.getFields())
-            .filter(([_, field]) => isLeafType(getBaseType(field.type)))
-        const Title = <div>{i.name}</div>
-        return (
-            <FieldTable product={i} title={Title} key={index} fields={fields}/>
-        )
-    })
-
-    return <Box display="flex">
-        <Box sx={{p: 1}} flex={1}>
-            {(fields?.length ?? 0) > 0 && <FieldTable root={true} product={product} fields={fields}/>}
-            {(relationships?.length ?? 0) > 0 && <RelationshipsTable/>}
-        </Box>
-        {(selectedRelationships?.length ?? 0) > 0 && (
-            <Box sx={{p: 1}} flex={1}>{RelationshipTables} </Box>)}
-    </Box>
+        getDetailPanelContent={({row}) => getDetailPanelContent(row)}
+        getDetailPanelHeight={() => 'auto'}
+        columnVisibilityModel={{
+            name: true,
+            description: true,
+            type: true,
+            __check__: true,
+            __detail_panel_toggle__: false
+        }}
+    />
 }
 
 export default ProductTable;

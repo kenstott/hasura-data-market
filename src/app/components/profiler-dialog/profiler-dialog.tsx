@@ -8,11 +8,11 @@ import {
     Collapse,
     DialogContent,
     Divider,
-    FormControl,
+    FormControl, IconButton,
     Input,
     List,
     ListItemButton,
-    ListItemText,
+    ListItemText, Snackbar,
     Typography
 } from "@mui/material";
 import {
@@ -24,7 +24,6 @@ import {
     OperationDefinitionNode,
     print
 } from "graphql";
-import {getBaseType} from "../market-place-card/market-place-card";
 import {useLoginContext} from "../login-context/login-context";
 import process from "process";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
@@ -43,6 +42,8 @@ import {
 } from "../charts/profile-types";
 import {FieldDescriptor, getFieldDescriptors} from "../helpers/get-field-descriptors";
 import {GraphQLResponse} from "../helpers/graphql-response";
+import {getBaseType} from "../helpers/get-base-type";
+import CloseIcon from "@mui/icons-material/Close";
 
 export const ProfilerOptions: React.FC<ProfileOptionsProps> = ({formVariables, setFormVariables}) => {
 
@@ -78,6 +79,7 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
     const [columns, setColumns] = useState<Array<FieldDescriptor>>()
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [totalRowsAnalyzed, setTotalRowsAnalyzed] = useState(0)
+    const [errorMessage, setErrorMessage] = useState<string>('')
 
     const handleClick = (itemId: string) => {
         if (expandedItems.includes(itemId)) {
@@ -158,7 +160,7 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
             setColumns(fields.map(fields => [...fields, baseType]))
             const fieldList = fields.map(([name, _]) => name).join(' ')
             const sample = `@sample(count: 0) @profile`
-            const query = `query profile${baseType.name} ${sample} { ${baseType.name}(limit: ${maxSize}) { ${fieldList} } }`
+            const query = `query profile${baseType.name} ${sample} { ${product.name}(limit: ${maxSize}) { ${fieldList} } }`
             setProfileQuery(query)
         }
     }, [open, product, debouncedProfileVariables]);
@@ -176,7 +178,8 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
             setLoading(true)
             const headers = {
                 'x-hasura-admin-secret': adminSecret,
-                'x-hasura-role': role,
+                'hasura_cloud_pat': adminSecret,
+                'x-hasura-role': process.env.NEXT_PUBLIC_EXPLORER_ROLE || '',
                 'x-hasura-user': id,
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -194,6 +197,9 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
                 body
             }).then(async (response) => {
                 const rows = await response.json() as GraphQLResponse
+                if (rows.errors?.length) {
+                    setErrorMessage(`${rows.errors[0].message}. ${rows.errors[0].extensions?.['internal']?.error?.message || ''}`)
+                }
                 setRows(rows.extensions.profiling[Object.keys(rows.extensions.profiling)[0]])
                 setTotalRowsAnalyzed((rows.extensions.actualDatasetSize[Object.keys(rows.extensions.profiling)[0]]))
                 setLoading(false)
@@ -246,6 +252,25 @@ export const ProfilerDialog: React.FC<ProfilerDialogProps> = ({open, onClose, qu
                     </List>
                 </Box>
             </DialogContent>
+            {errorMessage.length > 0 && <Snackbar
+                anchorOrigin={{vertical: 'top', horizontal: 'center'}}
+                open={errorMessage.length > 0}
+                autoHideDuration={6000}
+                onClose={() => {
+                    setErrorMessage('')
+                }}
+                message={errorMessage}
+                action={<React.Fragment>
+                    <IconButton
+                        size="small"
+                        aria-label="close"
+                        color="inherit"
+                        onClick={() => setErrorMessage('')}
+                    >
+                        <CloseIcon fontSize="small"/>
+                    </IconButton>
+                </React.Fragment>}
+            />}
         </Dialog>)
     }
     return null

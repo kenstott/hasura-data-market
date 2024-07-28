@@ -48,7 +48,7 @@ export const RequestQuery: React.FC = () => {
     useEffect(() => {
         const newHeaders = {
             'x-hasura-admin-secret': adminSecret,
-            'x-hasura-role': role,
+            'x-hasura-role': process.env.NEXT_PUBLIC_EXPLORER_ROLE || '',
             'x-hasura-user': id
         }
         setHeaders((prevHeaders) =>

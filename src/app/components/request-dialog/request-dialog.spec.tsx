@@ -4,7 +4,8 @@ import RequestDialog from './request-dialog';
 
 describe('RequestDialog', () => {
     it('should render successfully', () => {
-        const {baseElement} = render(<RequestDialog open={true} onClose={() => {/* ignore */
+        const {baseElement} = render(<RequestDialog open={true} onCompleted={() => {/*ignore*/
+        }} onClose={() => {/* ignore */
         }}/>);
         expect(baseElement).toBeTruthy();
     });

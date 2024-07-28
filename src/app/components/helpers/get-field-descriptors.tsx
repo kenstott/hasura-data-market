@@ -9,7 +9,8 @@ import {
     OperationDefinitionNode,
     SelectionSetNode
 } from "graphql";
-import {getBaseType} from "../market-place-card/market-place-card";
+
+import {getBaseType} from "./get-base-type";
 
 export type FieldDescriptor = [string, GraphQLField<never, never>, GraphQLObjectType]
 

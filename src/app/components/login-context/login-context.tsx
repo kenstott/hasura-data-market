@@ -1,5 +1,5 @@
 // contexts/LoginContext.tsx
-import React, {createContext, PropsWithChildren, useContext, useEffect, useState} from "react";
+import React, {createContext, PropsWithChildren, useCallback, useContext, useEffect, useState} from "react";
 
 export interface LoginContextType {
     id: string;
@@ -33,10 +33,10 @@ export const LoginProvider: React.FC<PropsWithChildren> = ({children}) => {
         }
     }, []);
 
-    const updateFormValues = (values: LoginContextVariables) => {
+    const updateFormValues = useCallback((values: LoginContextVariables) => {
         setFormValues((prevValues) => ({...prevValues, ...values}));
         _window?.localStorage?.setItem('data-marketplace:login', JSON.stringify(values));
-    };
+    }, []);
 
     return (
         <LoginContext.Provider value={{...formValues, updateFormValues}}>
