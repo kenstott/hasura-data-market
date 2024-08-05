@@ -1,5 +1,6 @@
 import {convertISODateStringsToDates, MongoSingleton} from "../connection";
 import {Document, Filter} from "mongodb";
+import {MongoDbInsertResponse} from "../insertMany/route";
 
 export interface MongoDbReplaceOne {
     filter: Filter<Document>
@@ -11,6 +12,8 @@ export interface MongoDbUpsertMany {
     collection: string
     operations: MongoDbReplaceOne[]
 }
+
+export type UpsertManyFunction = (options: MongoDbUpsertMany) => Promise<MongoDbInsertResponse>
 
 export async function POST(request: Request) {
     console.assert(process.env.MONGODB_DATABASE)

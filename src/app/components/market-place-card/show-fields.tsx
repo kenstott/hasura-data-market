@@ -1,6 +1,6 @@
-import {Product} from "../current-product-context/current-product-context";
+import {Product} from "../../context/current-product-context/current-product-context";
 import React, {useCallback, useEffect, useState} from "react";
-import {usePoliciesContext} from "../policies-context/policies-context";
+import {usePoliciesContext} from "../../context/policies-context/policies-context";
 import {GraphQLField, GraphQLObjectType, isLeafType, isObjectType} from "graphql";
 
 import {getBaseType} from "../helpers/get-base-type";

@@ -1,6 +1,6 @@
 import {render} from '@testing-library/react';
 
-import GraphqlSchemaContext from './current-product-context';
+import GraphqlSchemaContext from './search-context';
 
 describe('GraphqlSchemaContext', () => {
     it('should render successfully', () => {

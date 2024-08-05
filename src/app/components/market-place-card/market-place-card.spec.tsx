@@ -1,6 +1,6 @@
 import {render} from '@testing-library/react';
 import MarketPlaceCard from './market-place-card';
-import {Product} from "../current-product-context/current-product-context";
+import {Product} from "../../context/current-product-context/current-product-context";
 import {GraphQLScalarType} from 'graphql';
 
 export const GraphQLAny = new GraphQLScalarType({
@@ -21,7 +21,8 @@ describe('MarketPlaceCard', () => {
             isDeprecated: false,
             extensions: undefined
         }
-        const {baseElement} = render(<MarketPlaceCard product={product}/>);
+        const {baseElement} = render(<MarketPlaceCard refresh={() => {/* ignore */
+        }} product={product}/>);
         expect(baseElement).toBeTruthy();
     });
 });

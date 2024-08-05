@@ -6,16 +6,19 @@ export interface LoginContextType {
     role: string;
     password: string;
     adminSecret: string;
+    headers: HeadersInit
     updateFormValues: (values: LoginContextVariables) => void;
 }
 
-export type LoginContextVariables = Omit<LoginContextType, 'updateFormValues'>
+export type LoginContextVariables = Omit<LoginContextType, 'updateFormValues,headers'>
+export type LoginContextAlt = Omit<LoginContextType, 'updateFormValues'>
 
 const initialFormValues = {
     id: "",
     role: "",
     password: '',
     adminSecret: "",
+    headers: {}
 };
 
 const LoginContext = createContext<LoginContextType | undefined>(undefined);
@@ -24,7 +27,18 @@ const _window = typeof window !== 'undefined' ? window : undefined;
 export const LoginProvider: React.FC<PropsWithChildren> = ({children}) => {
 
     const [formValues, setFormValues] =
-        useState<LoginContextVariables>(initialFormValues);
+        useState<LoginContextAlt>(initialFormValues);
+
+    useEffect(() => {
+        const headers = {
+            'x-hasura-admin-secret': formValues.adminSecret,
+            'x-hasura-role': formValues.role,
+            'x-hasura-user': formValues.id,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+        }
+        setFormValues(prevState => ({...prevState, headers}))
+    }, [formValues.adminSecret, formValues.id, formValues.role]);
 
     useEffect(() => {
         const result = _window?.localStorage?.getItem('data-marketplace:login')

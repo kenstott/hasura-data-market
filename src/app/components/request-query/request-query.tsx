@@ -13,9 +13,9 @@ import {ProfileButton} from "./profile-button/profile-button";
 import {ExportResponseButton, FileFormat} from "./export-response/export-response-button";
 import {createFetcher} from "../../create-fetcher";
 import {Fetcher} from "@graphiql/toolkit";
-import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
-import {useCurrentProductContext} from "../current-product-context/current-product-context";
-import {useLoginContext} from "../login-context/login-context";
+import {useGraphQLSchemaContext} from "../../context/graphql-schema-context/graphql-schema-context";
+import {useCurrentProductContext} from "../../context/current-product-context/current-product-context";
+import {useLoginContext} from "../../context/login-context/login-context";
 import {SampleButton} from "./sample-button/sample-button";
 import AnomaliesButton from "./anomalies-button/anomalies-button";
 

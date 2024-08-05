@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {useSearchContext} from "./components/search-context/search-context";
+import {useSearchContext} from "./context/search-context/search-context";
 import {IconButton, InputBase} from "@mui/material";
 import styles from "./components/market-place-grid/market-place-grid.module.scss";
 import SearchIcon from "@mui/icons-material/Search";

@@ -2,27 +2,26 @@ import React, {useEffect, useState} from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import {Box, DialogContent, FormControl, IconButton, Input, Slider, Snackbar, Stack, Typography} from "@mui/material";
-import {Product} from "../current-product-context/current-product-context";
-import {
-    DocumentNode,
-    FieldNode,
-    GraphQLObjectType,
-    isLeafType,
-    OperationDefinitionNode,
-    print
-} from "graphql";
-import {useLoginContext} from "../login-context/login-context";
+import {Product} from "../../context/current-product-context/current-product-context";
+import {DocumentNode, FieldNode, GraphQLObjectType, isLeafType, OperationDefinitionNode, print} from "graphql";
+import {useLoginContext} from "../../context/login-context/login-context";
 import process from "process";
-import {DataGridPro, GridColDef, GridFilterModel, GridToolbar, useGridApiRef} from '@mui/x-data-grid-pro';
+import {
+    DataGridPro,
+    GridColDef,
+    GridFilterModel,
+    GridLogicOperator,
+    GridToolbar,
+    useGridApiRef
+} from '@mui/x-data-grid-pro';
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import {useDebounce} from "../use-debounce";
 import gql from "graphql-tag";
 import {Writeable} from "../product-table/product-table";
 import {flatten} from 'flat'
 import {AnomalyFieldType, GraphQLResponse} from "../helpers/graphql-response";
-import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
+import {useGraphQLSchemaContext} from "../../context/graphql-schema-context/graphql-schema-context";
 import BugReportIcon from "@mui/icons-material/BugReport";
-import {GridLogicOperator} from "@mui/x-data-grid-pro";
 import _ from 'lodash';
 import CloseIcon from "@mui/icons-material/Close";
 import {getBaseType} from "../helpers/get-base-type";

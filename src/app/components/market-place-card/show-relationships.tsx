@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useState} from "react";
-import {usePoliciesContext} from "../policies-context/policies-context";
+import {usePoliciesContext} from "../../context/policies-context/policies-context";
 import {GraphQLField, isObjectType} from "graphql";
-import {Product} from "../current-product-context/current-product-context";
+import {Product} from "../../context/current-product-context/current-product-context";
 
 import {getBaseType} from "../helpers/get-base-type";
 import {HtmlTooltip} from "../helpers/html-tooltip";

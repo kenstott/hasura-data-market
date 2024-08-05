@@ -1,31 +1,27 @@
 import styles from './market-place-grid.module.scss';
-import {
-    Box, Button,
-    ButtonProps,
-    CircularProgress,
-    FormControlLabel,
-    Switch,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead
-} from "@mui/material";
+import {Box, Button, ButtonProps, CircularProgress, FormControlLabel, Switch} from "@mui/material";
 import Grid from '@mui/material/Unstable_Grid2'
 import React, {useCallback, useEffect, useState} from "react";
-import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
+import {useGraphQLSchemaContext} from "../../context/graphql-schema-context/graphql-schema-context";
 import MarketPlaceCard, {HamburgerMenu} from "../market-place-card/market-place-card";
 import MarketPlaceCardDetails from "../market-place-card-details/market-place-card-details";
-import {Product, useCurrentProductContext} from "../current-product-context/current-product-context";
-import {GraphQLField, isEnumType, isLeafType, isObjectType} from "graphql";
-import {useSearchContext} from "../search-context/search-context";
-import {usePoliciesContext} from "../policies-context/policies-context";
+import {Product, useCurrentProductContext} from "../../context/current-product-context/current-product-context";
+import {GraphQLField, GraphQLObjectType, isEnumType, isLeafType, isObjectType} from "graphql";
+import {useSearchContext} from "../../context/search-context/search-context";
+import {usePoliciesContext} from "../../context/policies-context/policies-context";
 import {getBaseType} from "../helpers/get-base-type";
 import {
     DataGridPro,
     DataGridProProps,
     GRID_TREE_DATA_GROUPING_FIELD,
-    GridColDef, GridColumnVisibilityModel, gridFilteredDescendantCountLookupSelector,
-    GridRenderCellParams, GridToolbar, GridTreeNodeWithRender, useGridApiContext, useGridSelector
+    GridColDef,
+    GridColumnVisibilityModel,
+    gridFilteredDescendantCountLookupSelector,
+    GridRenderCellParams,
+    GridToolbar,
+    GridTreeNodeWithRender,
+    useGridApiContext,
+    useGridSelector
 } from "@mui/x-data-grid-pro";
 import {ShowFields} from "../market-place-card/show-fields";
 import {ShowRelationships} from "../market-place-card/show-relationships";
@@ -34,17 +30,28 @@ import ProfilerDialog from "../profiler-dialog/profiler-dialog";
 import AnomaliesDialog from "../anomalies-dialog/anomalies-dialog";
 import PoliciesDialog from "../policies-dialog/policies-dialog";
 import AskMeDialog from "../ask-me-dialog/ask-me-dialog";
+import {ShowType} from "../market-place-card/show-type";
+import TagEditorDialog from "../tags/tag-editor-dialog";
+import {ShowTags, Tag} from "../tags/show-tags";
+import {getTags} from "../tags/get-tags";
+import {useLoginContext} from "../../context/login-context/login-context";
 
 /* eslint-disable-next-line */
 export interface MarketPlaceGridProps {
 }
 
-const RowHamburgerMenu: React.FC<{ row: { item: GraphQLField<never, never> } }> = ({row}) => {
+export const stringSort = (a: string, b: string) => a.localeCompare(b)
+
+const RowHamburgerMenu: React.FC<{ refresh: () => void, row: { item: GraphQLField<never, never> } }> = ({
+                                                                                                            refresh,
+                                                                                                            row
+                                                                                                        }) => {
     const [openAskMe, setOpenAskMe] = useState(false)
     const [openSampler, setOpenSampler] = useState(false)
     const [openProfiler, setOpenProfiler] = useState(false)
     const [openAnomalies, setOpenAnomalies] = useState(false)
     const [openPolicies, setOpenPolicies] = useState(false)
+    const [openTags, setOpenTags] = useState(false)
     const {setCurrentProduct} = useCurrentProductContext();
     const {selectDataSets} = usePoliciesContext()
     return <><HamburgerMenu
@@ -53,6 +60,7 @@ const RowHamburgerMenu: React.FC<{ row: { item: GraphQLField<never, never> } }> 
         setOpenPolicies={setOpenPolicies}
         setOpenAnomalies={setOpenAnomalies}
         setOpenSampler={setOpenSampler}
+        setOpenTags={setOpenTags}
         setOpenProfiler={setOpenProfiler}
         product={row.item}
         setOpenAskMe={setOpenAskMe}/>
@@ -65,6 +73,10 @@ const RowHamburgerMenu: React.FC<{ row: { item: GraphQLField<never, never> } }> 
         {openPolicies &&
             <PoliciesDialog product={row.item} open={openPolicies} onClose={() => setOpenPolicies(false)}/>}
         {openAskMe && <AskMeDialog product={row.item} open={openAskMe} onClose={() => setOpenAskMe(false)}/>}
+        {openTags && <TagEditorDialog product={row.item} open={openTags} onClose={() => {
+            setOpenTags(false)
+            refresh()
+        }}/>}
     </>
 }
 
@@ -144,14 +156,22 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
     const [showAsGrid, setShowAsGrid] = useState(true)
     const [rows, setRows] = useState<DatasourceRow[]>([])
     const [columns, setColumns] = useState<GridColDef[]>([])
+    const [refreshKey, setRefreshKey] = useState(0);
     const [filterModel, setFilterModel] = useState<GridColumnVisibilityModel>({
         'Product': false,
         'Domain': false,
         'Product Owner': false,
-        'Type': false
+        'Type': true,
+        'Tag': true
     })
+    const [tags, setTags] = useState<Tag[]>([])
     const {selectDataSets} = usePoliciesContext()
     const {currentProduct} = useCurrentProductContext()
+    const {id, role, headers} = useLoginContext()
+
+    useEffect(() => {
+        getTags(undefined, id, role, headers).then(setTags)
+    }, [headers, id, role])
 
     useEffect(() => {
         if (hasuraSchema) {
@@ -212,15 +232,50 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
                 type: 'actions',
                 width: 50,
                 field: '',
-                renderCell: ({row}) => <RowHamburgerMenu row={row}/>
+                renderCell: ({row}) => <RowHamburgerMenu refresh={() => setRefreshKey(refreshKey + 1)} row={row}/>
             },
             {field: 'Domain', width: 150},
             {field: 'Product', width: 300,},
-            {field: 'Type', width: 250},
+            {
+                field: 'Type',
+                width: 250,
+                valueGetter: (_value, row) => {
+                    return getBaseType(row?.item?.type)?.toString()
+                },
+                renderCell: ({row}) => {
+                    return <ShowType product={row.item} noLabel={true}/>
+                }
+            },
+            {
+                field: 'Tags',
+                width: 250,
+                valueGetter: (_value, row) => {
+                    if (row?.item?.name && typeof row.item.name === 'string') {
+                        const test = row.item.name
+                        const resource = test.replace('_', '/')
+                        console.log('test')
+                        console.log(resource)
+                        return tags.filter(t => t.resource === resource).map(t => t.tag).join(' ')
+                    }
+                },
+                renderCell: ({rowNode, row}) => {
+                    if (rowNode.type !== 'group') {
+                        return <div className={styles.tags}>
+                            <ShowTags refresh={() => setRefreshKey(refreshKey + 1)} product={row.item}/>
+                        </div>
+                    } else {
+                        return <></>
+                    }
+                }
+            },
             {field: 'Product Owner', width: 200},
             {
                 field: 'Fields',
                 flex: .5,
+                valueGetter: (_value, row) => {
+                    const fields = Object.entries((getBaseType(row?.item?.type) as GraphQLObjectType)?.getFields?.() || {}).filter(([_, field]) => isLeafType(getBaseType(field.type)))
+                    return fields.map(([name, _]) => name).sort(stringSort).join(",")
+                },
                 renderCell: ({row}) => {
                     return <ShowFields product={row.item} read={true} noLabel={true}/>
                 }
@@ -228,12 +283,16 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
             {
                 field: 'Relationships',
                 flex: .5,
+                valueGetter: (_value, row) => {
+                    const relationships = Object.entries((getBaseType(row?.item?.type) as GraphQLObjectType)?.getFields?.() || {}).filter(([_, field]) => !isLeafType(getBaseType(field.type)))
+                    return relationships.map(([name, _]) => name).sort(stringSort).join(",")
+                },
                 renderCell: ({row}) => {
                     return <ShowRelationships product={row.item} noLabel={true}/>
                 }
             }
         ])
-    }, [])
+    }, [headers, id, refreshKey, role, tags])
 
     useEffect(() => {
             setRows(products?.filter((product, index) =>
@@ -270,7 +329,7 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
 
     if (hasuraSchema && products) {
         return (
-            <Box className={"marketplace-grid"} sx={{
+            <Box key={refreshKey} className={"marketplace-grid"} sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
@@ -300,14 +359,14 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
                     />
                 </Box>
                 {showAsGrid && <Box sx={{flexGrow: 1, overflowY: 'scroll'}}>
-                    <Grid className={styles['grid-container']} container spacing={2}>
+                    <Grid key={refreshKey} className={styles['grid-container']} container spacing={2}>
                         {products?.filter((product, index) =>
                             (!showInventory || showInventory && selectDataSets.findIndex((i) => getBaseType(product.type)?.toString() === i) !== -1) &&
                             (!search || search?.test(searchable[index]))
                         )
                             .map((item,) => (
                                 <Grid xs={12} sm={6} md={4} lg={3} key={item.name}>
-                                    <MarketPlaceCard product={item}/>
+                                    <MarketPlaceCard refresh={() => setRefreshKey(refreshKey + 1)} product={item}/>
                                 </Grid>
                             ))}
                     </Grid>
@@ -315,6 +374,7 @@ export const MarketPlaceGrid: React.FC<MarketPlaceGridProps> = () => {
                 </Box>}
                 {!showAsGrid && <Box sx={{flexGrow: 1, overflowY: 'scroll'}}>
                     <DataGridPro
+                        key={refreshKey}
                         treeData
                         getTreeDataPath={getTreeDataPath}
                         slots={{toolbar: GridToolbar}}

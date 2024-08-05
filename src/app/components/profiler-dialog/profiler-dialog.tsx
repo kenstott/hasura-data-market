@@ -8,11 +8,13 @@ import {
     Collapse,
     DialogContent,
     Divider,
-    FormControl, IconButton,
+    FormControl,
+    IconButton,
     Input,
     List,
     ListItemButton,
-    ListItemText, Snackbar,
+    ListItemText,
+    Snackbar,
     Typography
 } from "@mui/material";
 import {
@@ -24,7 +26,7 @@ import {
     OperationDefinitionNode,
     print
 } from "graphql";
-import {useLoginContext} from "../login-context/login-context";
+import {useLoginContext} from "../../context/login-context/login-context";
 import process from "process";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import {useDebounce} from "../use-debounce";
@@ -33,7 +35,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import gql from "graphql-tag";
 import {Writeable} from "../product-table/product-table";
-import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
+import {useGraphQLSchemaContext} from "../../context/graphql-schema-context/graphql-schema-context";
 import {
     ProfileOptionsProps,
     ProfilerDialogProps,

@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
-import {useShoppingCartContext} from "./components/shopping-cart-context/shopping-cart-context";
-import {usePoliciesContext} from "./components/policies-context/policies-context";
+import {useShoppingCartContext} from "./context/shopping-cart-context/shopping-cart-context";
+import {usePoliciesContext} from "./context/policies-context/policies-context";
 import {Snackbar} from "@mui/material";
 
 export const ShoppingCartChanged: React.FC = () => {

@@ -1,11 +1,18 @@
 import {convertISODateStringsToDates, MongoSingleton} from "../connection";
 import {DeleteOptions, Document, Filter} from "mongodb";
 
-interface MongoDbDelete {
+export interface MongoDbDelete {
     collection: string
     filter: Filter<Document>,
     options: DeleteOptions
 }
+
+export interface MongoDbDeleteResponse {
+    acknowledged: boolean,
+    deletedCount: number
+}
+
+export type DeleteManyFunction = (options: MongoDbDelete) => Promise<MongoDbDeleteResponse>;
 
 export async function POST(request: Request) {
     console.assert(process.env.MONGODB_DATABASE)

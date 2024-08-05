@@ -12,7 +12,7 @@ import {
     TextField,
     Typography
 } from "@mui/material";
-import {Product} from "../current-product-context/current-product-context";
+import {Product} from "../../context/current-product-context/current-product-context";
 import SendIcon from '@mui/icons-material/Send';
 import {
     ArgumentNode,
@@ -26,7 +26,7 @@ import {
 import gql from "graphql-tag";
 import {getBaseType} from "../helpers/get-base-type";
 import process from "process";
-import {useLoginContext} from "../login-context/login-context";
+import {useLoginContext} from "../../context/login-context/login-context";
 import {GraphQLResponse} from "../helpers/graphql-response";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";

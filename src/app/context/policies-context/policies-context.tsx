@@ -2,9 +2,9 @@ import React, {createContext, ReactNode, useCallback, useContext, useEffect, use
 import {GraphQLField, GraphQLFieldMap, GraphQLObjectType, isLeafType} from "graphql";
 import {useLoginContext} from "../login-context/login-context";
 import {CartItem, useShoppingCartContext} from "../shopping-cart-context/shopping-cart-context";
-import {AllOrSelected, ReadOrSelect, SelectedDataset} from "../submit-request/submit-request-dialog";
+import {AllOrSelected, ReadOrSelect, SelectedDataset} from "../../components/submit-request/submit-request-dialog";
 import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
-import {FieldDescriptor} from "../helpers/get-field-descriptors";
+import {FieldDescriptor} from "../../components/helpers/get-field-descriptors";
 import {MongoDbFind} from "../../api/mongodb/find/route";
 import {MongoDbReplaceOne} from "../../api/mongodb/upsertMany/route";
 

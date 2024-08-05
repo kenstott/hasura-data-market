@@ -1,5 +1,5 @@
 import {convertISODateStringsToDates, MongoSingleton} from "../connection";
-import {Filter, FindOptions, Document} from "mongodb";
+import {Document, Filter, FindOptions} from "mongodb";
 
 export interface MongoDbFind {
     collection: string

@@ -1,4 +1,4 @@
-import {useShoppingCartContext} from "../shopping-cart-context/shopping-cart-context";
+import {useShoppingCartContext} from "../../context/shopping-cart-context/shopping-cart-context";
 import Dialog from "@mui/material/Dialog";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -7,7 +7,7 @@ import {Button, DialogActions} from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import CancelIcon from "@mui/icons-material/Cancel";
 import React, {useEffect, useState} from "react";
-import {usePoliciesContext} from "../policies-context/policies-context";
+import {usePoliciesContext} from "../../context/policies-context/policies-context";
 import {ShoppingCartItem} from "./shopping-cart-item";
 
 /* eslint-disable-next-line */

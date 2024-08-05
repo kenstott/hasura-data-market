@@ -14,22 +14,26 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import MenuIcon from '@mui/icons-material/Menu';
 import React, {useCallback, useState} from "react";
-import {Product, useCurrentProductContext} from "../current-product-context/current-product-context";
+import {Product, useCurrentProductContext} from "../../context/current-product-context/current-product-context";
 import SamplerDialog from "../sampler-dialog/sampler-dialog";
 import ProfilerDialog from "../profiler-dialog/profiler-dialog";
 import AnomaliesDialog from "../anomalies-dialog/anomalies-dialog";
-import {usePoliciesContext} from "../policies-context/policies-context";
+import {usePoliciesContext} from "../../context/policies-context/policies-context";
 import PoliciesDialog from "../policies-dialog/policies-dialog";
 import {ShowFields} from "./show-fields";
 import {ShowRelationships} from "./show-relationships";
 import AskMeDialog from "../ask-me-dialog/ask-me-dialog";
 import {getBaseType} from "../helpers/get-base-type";
 import {isListType, isNonNullType} from "graphql";
+import {ShowTags} from "../tags/show-tags";
+import {ShowType} from "./show-type";
+import TagEditorDialog from "../tags/tag-editor-dialog";
 
 /* eslint-disable-next-line */
 export interface MarketPlaceCardProps {
-    product: Product,
+    product: Product
     asTableRow?: boolean
+    refresh: () => void
 }
 
 interface HamburgerMenuProps {
@@ -37,6 +41,7 @@ interface HamburgerMenuProps {
     setOpenProfiler: (value: (((prevState: boolean) => boolean) | boolean)) => void,
     setOpenAnomalies: (value: (((prevState: boolean) => boolean) | boolean)) => void,
     setOpenAskMe: (value: (((prevState: boolean) => boolean) | boolean)) => void,
+    setOpenTags: (value: (((prevState: boolean) => boolean) | boolean)) => void,
     selectDataSets: string[],
     product: Product,
     setCurrentProduct: (product?: Product) => void,
@@ -48,6 +53,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> =
          setOpenPolicies,
          setOpenAnomalies,
          setOpenAskMe,
+         setOpenTags,
          setOpenSampler,
          setOpenProfiler,
          setCurrentProduct,
@@ -133,7 +139,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> =
                         </MenuItem>}
                     <MenuItem onClick={(_event) => {
                         handleMenuClose()
-                        // setCurrentProduct(product)
+                        setOpenTags(true)
                     }}><ListItemIcon>
                         <StyleIcon fontSize="small"/>
                     </ListItemIcon>
@@ -167,8 +173,9 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> =
         }
     }
 
-export function MarketPlaceCard({product, asTableRow}: MarketPlaceCardProps) {
+export function MarketPlaceCard({product, asTableRow, refresh}: MarketPlaceCardProps) {
     const [openAskMe, setOpenAskMe] = useState(false)
+    const [openTags, setOpenTags] = useState(false)
     const [openSampler, setOpenSampler] = useState(false)
     const [openProfiler, setOpenProfiler] = useState(false)
     const [openAnomalies, setOpenAnomalies] = useState(false)
@@ -192,14 +199,17 @@ export function MarketPlaceCard({product, asTableRow}: MarketPlaceCardProps) {
                         setOpenPolicies={setOpenPolicies}
                         setOpenAnomalies={setOpenAnomalies}
                         setOpenSampler={setOpenSampler}
+                        setOpenTags={setOpenTags}
                         setOpenProfiler={setOpenProfiler}
                         product={product}
                         setOpenAskMe={setOpenAskMe}/>
                     } className={styles['data-card-header']}
                                 title={title}>{title}</CardHeader>
                     <CardContent>
+                        <ShowType product={product}/>
                         <ShowFields product={product} read={true}/>
                         <ShowRelationships product={product}/>
+                        <ShowTags product={product} refresh={refresh}/>
                     </CardContent>
                 </Card>
                 {openSampler &&
@@ -211,6 +221,10 @@ export function MarketPlaceCard({product, asTableRow}: MarketPlaceCardProps) {
                 {openPolicies &&
                     <PoliciesDialog product={product} open={openPolicies} onClose={() => setOpenPolicies(false)}/>}
                 {openAskMe && <AskMeDialog product={product} open={openAskMe} onClose={() => setOpenAskMe(false)}/>}
+                {openTags && <TagEditorDialog product={product} open={openTags} onClose={() => {
+                    setOpenTags(false)
+                    refresh()
+                }}/>}
             </React.Fragment>
         );
     }
@@ -223,6 +237,7 @@ export function MarketPlaceCard({product, asTableRow}: MarketPlaceCardProps) {
                 setOpenPolicies={setOpenPolicies}
                 setOpenAnomalies={setOpenAnomalies}
                 setOpenSampler={setOpenSampler}
+                setOpenTags={setOpenTags}
                 setOpenProfiler={setOpenProfiler}
                 product={product}
                 setOpenAskMe={setOpenAskMe}/></TableCell>
@@ -240,6 +255,10 @@ export function MarketPlaceCard({product, asTableRow}: MarketPlaceCardProps) {
             {openPolicies &&
                 <PoliciesDialog product={product} open={openPolicies} onClose={() => setOpenPolicies(false)}/>}
             {openAskMe && <AskMeDialog product={product} open={openAskMe} onClose={() => setOpenAskMe(false)}/>}
+            {openTags && <TagEditorDialog product={product} open={openTags} onClose={() => {
+                setOpenTags(false)
+                refresh()
+            }}/>}
         </TableRow>)
 }
 

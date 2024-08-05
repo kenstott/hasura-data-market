@@ -1,12 +1,12 @@
-import {CartItem} from "../shopping-cart-context/shopping-cart-context";
+import {CartItem} from "../../context/shopping-cart-context/shopping-cart-context";
 import Dialog from "@mui/material/Dialog";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import {Button, DialogActions} from "@mui/material";
 import React, {useEffect, useState} from "react";
-import {Policy, Product, usePoliciesContext} from "../policies-context/policies-context";
-import {useCurrentProductContext} from "../current-product-context/current-product-context";
+import {Policy, Product, usePoliciesContext} from "../../context/policies-context/policies-context";
+import {useCurrentProductContext} from "../../context/current-product-context/current-product-context";
 import {PoliciesDialogItem} from "./policies-dialog-item";
 import {getBaseType} from "../helpers/get-base-type";
 

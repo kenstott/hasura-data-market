@@ -1,8 +1,8 @@
 import assert from "assert";
 import process from "process";
-import {AnthropicResponse} from "../../components/ask-me-dialog/ask-me";
 import {NextApiRequest} from "next";
 
+// noinspection JSUnusedGlobalSymbols
 export const maxDuration = 600
 
 export async function POST(req: Request & NextApiRequest) {

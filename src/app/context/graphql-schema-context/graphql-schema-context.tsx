@@ -1,16 +1,9 @@
 import React, {createContext, ReactNode, useContext, useEffect, useRef, useState} from 'react';
-import {
-    buildClientSchema,
-    ExecutionResult,
-    getIntrospectionQuery,
-    GraphQLSchema,
-    IntrospectionDirective,
-    IntrospectionQuery
-} from "graphql";
+import {buildClientSchema, ExecutionResult, GraphQLSchema, IntrospectionDirective, IntrospectionQuery} from "graphql";
 import {Fetcher} from "@graphiql/toolkit";
 import {createFetcher} from "../../create-fetcher";
 import process from "process";
-import {Writeable} from "../product-table/product-table";
+import {Writeable} from "../../components/product-table/product-table";
 
 export type GraphQLSchemaContextType = {
     schema?: GraphQLSchema | null;

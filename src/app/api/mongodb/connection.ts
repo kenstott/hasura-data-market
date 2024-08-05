@@ -1,9 +1,10 @@
-import {Filter, MongoClient, Document} from "mongodb";
+import {Document, MongoClient} from "mongodb";
 import assert from "assert";
 
 export class MongoSingleton {
     private static instance: MongoClient;
 
+    // noinspection JSUnusedLocalSymbols
     private constructor() {
         // Private constructor to prevent instantiation
     }
@@ -42,7 +43,7 @@ process.on('SIGTERM', async () => {
     process.exit(0);
 });
 
-function isISODateString(value: any): boolean {
+function isISODateString(value: unknown): boolean {
     const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
     return typeof value === 'string' && isoDatePattern.test(value);
 }

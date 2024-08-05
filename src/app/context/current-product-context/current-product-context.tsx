@@ -2,7 +2,7 @@ import React, {createContext, ReactNode, useCallback, useContext, useEffect, use
 import {DocumentNode, GraphQLField, print} from "graphql";
 import * as _ from 'lodash';
 import gql from "graphql-tag";
-import {getBaseType} from "../helpers/get-base-type";
+import {getBaseType} from "../../components/helpers/get-base-type";
 
 export type Product = GraphQLField<never, never>
 export type FieldSelectionStateMap = Record<string, [boolean, GraphQLField<never, never>]>

@@ -1,21 +1,23 @@
 import Dialog from "@mui/material/Dialog";
 import {GraphQLObjectType, GraphQLScalarType} from 'graphql'
-import {useCurrentProductContext} from "../current-product-context/current-product-context";
+import {useCurrentProductContext} from "../../context/current-product-context/current-product-context";
 import React, {useEffect, useState} from "react";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
-import {useGraphQLSchemaContext} from "../graphql-schema-context/graphql-schema-context";
+import {useGraphQLSchemaContext} from "../../context/graphql-schema-context/graphql-schema-context";
 import {FieldDescriptor, getFieldDescriptors} from "../helpers/get-field-descriptors";
 import DialogContent from "@mui/material/DialogContent";
 import {
     Accordion,
     AccordionDetails,
-    AccordionSummary, Box,
+    AccordionSummary,
+    Box,
     Button,
     DialogActions,
     Divider,
     FormControl,
-    FormControlLabel, FormHelperText,
+    FormControlLabel,
+    FormHelperText,
     Input,
     InputLabel,
     Paper,
@@ -28,17 +30,18 @@ import {
     TableContainer,
     TableHead,
     TablePagination,
-    TableRow, Typography
+    TableRow,
+    Typography
 } from "@mui/material";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CancelIcon from "@mui/icons-material/Cancel";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import {useShoppingCartContext} from "../shopping-cart-context/shopping-cart-context";
+import {useShoppingCartContext} from "../../context/shopping-cart-context/shopping-cart-context";
 import {DatePicker} from '@mui/x-date-pickers/DatePicker';
 import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
 import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import {useLoginContext} from "../login-context/login-context";
+import {useLoginContext} from "../../context/login-context/login-context";
 
 /* eslint-disable-next-line */
 export interface SubmitRequestDialogProps {
@@ -70,7 +73,7 @@ export const SubmitRequestDialog: React.FC<SubmitRequestDialogProps> = ({open, o
     const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(dayjs(new Date()))
     const [endDate, setEndDate] = useState<dayjs.Dayjs | null>()
     const {role} = useLoginContext()
-    
+
     useEffect(() => {
         if (modifiedProductRequestQuery) {
             const fieldDescriptors = getFieldDescriptors(modifiedProductRequestQuery, schema)

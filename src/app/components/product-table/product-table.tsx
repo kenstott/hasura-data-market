@@ -1,4 +1,4 @@
-import {useCurrentProductContext} from "../current-product-context/current-product-context";
+import {useCurrentProductContext} from "../../context/current-product-context/current-product-context";
 import React, {ReactNode, useCallback, useEffect, useRef} from "react";
 import {GraphQLField, GraphQLObjectType, isLeafType, isObjectType} from "graphql";
 import {

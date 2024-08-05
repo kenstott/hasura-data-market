@@ -6,7 +6,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import {LoginContextVariables, useLoginContext} from "../login-context/login-context";
+import {LoginContextVariables, useLoginContext} from "../../context/login-context/login-context";
 import {DialogActions, FormControl, FormHelperText, Input, InputLabel} from "@mui/material";
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";
 

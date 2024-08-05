@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {FieldDescriptor} from "../helpers/get-field-descriptors";
 import {AllOrSelected, SelectedDataset} from "../submit-request/submit-request-dialog";
-import {CartItem, useShoppingCartContext} from "../shopping-cart-context/shopping-cart-context";
+import {CartItem, useShoppingCartContext} from "../../context/shopping-cart-context/shopping-cart-context";
 import {
     Accordion,
     AccordionDetails,

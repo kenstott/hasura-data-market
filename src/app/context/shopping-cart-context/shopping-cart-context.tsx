@@ -1,6 +1,6 @@
 import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react';
-import {FieldDescriptor} from "../helpers/get-field-descriptors.js";
-import {SelectedDataset} from "../submit-request/submit-request-dialog.js";
+import {FieldDescriptor} from "../../components/helpers/get-field-descriptors.js";
+import {SelectedDataset} from "../../components/submit-request/submit-request-dialog.js";
 import hash from 'object-hash'
 
 export interface CartItem {

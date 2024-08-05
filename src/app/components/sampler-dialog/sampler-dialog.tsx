@@ -5,13 +5,15 @@ import {
     Box,
     DialogContent,
     FormControl,
-    FormControlLabel, IconButton,
+    FormControlLabel,
+    IconButton,
     Input,
     Radio,
-    RadioGroup, Snackbar,
+    RadioGroup,
+    Snackbar,
     Typography
 } from "@mui/material";
-import {Product} from "../current-product-context/current-product-context";
+import {Product} from "../../context/current-product-context/current-product-context";
 import {
     ArgumentNode,
     DocumentNode,
@@ -21,7 +23,7 @@ import {
     OperationDefinitionNode,
     print
 } from "graphql";
-import {useLoginContext} from "../login-context/login-context";
+import {useLoginContext} from "../../context/login-context/login-context";
 import process from "process";
 import {DataGridPro, GridColDef, GridFilterModel, GridToolbar, useGridApiRef} from '@mui/x-data-grid-pro';
 import DialogCloseButton from "../dialog-close-button/dialog-close-button";

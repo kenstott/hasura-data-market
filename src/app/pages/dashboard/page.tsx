@@ -2,18 +2,17 @@
 import React from 'react';
 import {Box, Container, Grid, Paper, Typography} from '@mui/material';
 import {DataGridPro} from '@mui/x-data-grid-pro';
-import {Line} from 'react-chartjs-2';
-import {Bar} from 'react-chartjs-2';
+import {Bar, Line} from 'react-chartjs-2';
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
     BarElement,
+    CategoryScale,
+    Chart as ChartJS,
+    Legend,
+    LinearScale,
+    LineElement,
+    PointElement,
     Title,
-    Tooltip,
-    Legend
+    Tooltip
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);

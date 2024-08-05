@@ -6,6 +6,12 @@ export interface MongoDbInsert {
     documents: Document[]
 }
 
+export interface MongoDbInsertResponse {
+    acknowledged: boolean,
+    insertedCount: number,
+    insertedIds: string[]
+}
+
 export async function POST(request: Request) {
     console.assert(process.env.MONGODB_DATABASE)
     const client = await MongoSingleton.getClient()

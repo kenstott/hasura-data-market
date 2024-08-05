@@ -1,5 +1,5 @@
 import React from "react";
-import {useShoppingCartContext} from "./components/shopping-cart-context/shopping-cart-context";
+import {useShoppingCartContext} from "./context/shopping-cart-context/shopping-cart-context";
 import {Badge, IconButton} from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 

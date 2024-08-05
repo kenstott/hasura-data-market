@@ -1,4 +1,3 @@
-import process from "process";
 import axios from "axios";
 
 export const askMe = async ({prompt, messages}: QueryParams): Promise<AnthropicResponse | null> => {

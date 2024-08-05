@@ -1,5 +1,5 @@
 import {DocumentNode, GraphQLScalarType} from "graphql";
-import {Product} from "../current-product-context/current-product-context";
+import {Product} from "../../context/current-product-context/current-product-context";
 
 export interface ProfileDateItem {
     unique: boolean

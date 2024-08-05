@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import {FieldDescriptor} from "../helpers/get-field-descriptors";
 import {SelectedDataset} from "../submit-request/submit-request-dialog";
-import {useShoppingCartContext} from "../shopping-cart-context/shopping-cart-context";
+import {useShoppingCartContext} from "../../context/shopping-cart-context/shopping-cart-context";
 import {
     Accordion,
     AccordionDetails,
@@ -28,7 +28,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {GraphQLScalarType} from "graphql";
-import {Policy} from "../policies-context/policies-context";
+import {Policy} from "../../context/policies-context/policies-context";
 
 interface PoliciesDialogItemProps {
     item: Policy
